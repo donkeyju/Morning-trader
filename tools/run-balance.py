@@ -30,7 +30,7 @@ async def main():
         await page.goto("file://" + os.path.join(ROOT, "index.html"))
         await page.wait_for_timeout(300)
         await page.add_script_tag(path=os.path.join(ROOT, "tools", "balance-bot.js"))
-        for strategy in ["skilled", "average"]:
+        for strategy in ["skilled", "hybrid", "biz", "average"]:
             print(await page.evaluate(f'runBot("{strategy}", {RUNS})'))
         if errors:
             print("페이지 오류:", errors)

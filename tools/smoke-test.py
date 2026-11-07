@@ -1,7 +1,7 @@
 """전체 흐름 자동 테스트 (스모크 테스트)
 
 폰 크기 화면으로 게임을 열고 실제 버튼을 눌러가며 한 바퀴 돈다.
-알바 → 복권 → 주식장 → DAY 7 임장·매입 → 내 자산에서 관심 매물 매입 → 30일 종료 리포트
+계산 알바 → 복권 → 주식장 → DAY 7 임장·매입 → 관심 매물 매입 → 물류 담당자 → 점장 발주 → 공매도 → 30일 종료 리포트
 자바스크립트 오류가 하나라도 나면 실패로 끝난다. 스크린샷은 tools/shots/ 에 저장.
 
 사용법 (저장소 루트에서):
@@ -16,6 +16,8 @@ SHOTS = os.path.join(ROOT, "tools", "shots")
 SOLVE = '''()=>{const c=J.cust; let w=c.paid-c.total;
   for(const m of MONEY){while(w>=m){document.querySelector(`.money button[data-m="${m}"]`).click(); w-=m;}}
   document.getElementById('give').click();}'''
+# 물류 정답 자동 입력: 기한 지난 건 폐기, 나머지는 알맞은 칸
+SHELF = '''()=>{const g=J.good; const k=g.expired?'trash':g.cat; document.querySelector(`.shelves button[data-s="${k}"]`).click();}'''
 
 
 async def main():
@@ -71,9 +73,30 @@ async def main():
         await pg.click("#back"); await pg.click('[data-act="job"]'); await pg.click("#go")
         await pg.evaluate("window.JOB_SPEED=30")
         await pg.wait_for_selector("#end", timeout=20000); await pg.click("#end"); await pg.wait_for_selector("#dayend")
+        await pg.click("#next"); await pg.wait_for_timeout(200)
+        # 물류 담당자 (단계를 직접 올려서 확인)
+        await pg.evaluate("S.career={stage:1,good:2}"); await pg.click("#next")
+        await pg.click('[data-act="job"]'); await pg.click("#go"); await pg.evaluate("window.JOB_SPEED=3")
+        for i in range(10):
+            await pg.wait_for_timeout(60); await pg.evaluate(SHELF)
+        await shot("8_shelf.png")
+        await pg.wait_for_selector("#end", timeout=20000); await pg.click("#end"); await pg.wait_for_selector("#dayend")
+        assert await pg.evaluate("S.career.stage")==2, "물류 담당자 3번째 좋은 근무 뒤 점장 승진이 안 됨"
+        await pg.click("#next"); await pg.wait_for_timeout(200)
+        # 점장 발주
+        await pg.click("#next"); await pg.click('[data-act="job"]'); await pg.click("#go"); await pg.wait_for_timeout(200)
+        await shot("9_order.png"); await pg.click("#go"); await pg.wait_for_timeout(200)
+        await pg.click("#end"); await pg.wait_for_selector("#dayend"); await pg.click("#next"); await pg.wait_for_timeout(200)
+        # 슈퍼개미 공매도
+        await pg.evaluate("S.inv.tier=1"); await pg.click("#next"); await pg.click('[data-act="stock"]')
+        await pg.click('.card[data-k="space"]'); await pg.click('.card[data-k="food"]'); await pg.click('[data-dir="space"][data-v="-1"]')
+        await pg.click("#next"); await pg.wait_for_timeout(2600); await pg.click("#buy")
+        assert await pg.evaluate("T.stocks[0].dir")==-1, "공매도 방향이 반영되지 않음"
+        await shot("10_short.png")
+        await pg.wait_for_selector("#dayend", timeout=30000)
         # 종료 리포트
         await pg.evaluate("S.day=30"); await pg.click("#next"); await pg.wait_for_timeout(500)
-        await shot("8_end.png")
+        await shot("11_end.png")
         await browser.close()
 
     if errors:

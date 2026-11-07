@@ -10,7 +10,7 @@
 - 피드백은 직접 플레이해보고 줘요("주식으로 다 잃었어", "집이 안 팔려" 등). 감 대신 **시뮬레이션 숫자**로 답하면 좋아해요.
 
 ## 게임 한 줄 요약
-매일 아침 가상 뉴스 5개를 읽고, 오늘 **한 가지**(📈 주식장 / 🏠 임장 / 🧾 편의점 알바)를 골라
+매일 아침 가상 뉴스 5개를 읽고, 오늘 **한 가지**(📈 주식장 / 🏠 임장 / 🧾 편의점)를 골라
 **30일 안에 순자산 1,000만 원 → 1억**을 만드는 도트 스타일 모바일 투자 게임 (PoC).
 
 ## 파일 구조
@@ -21,24 +21,31 @@
 |---|---|---|
 | `index.html` | 뼈대, 폰트, 스크립트 불러오기 | |
 | `css/style.css` | 모든 스타일. 색은 맨 위 `:root` 변수 | |
-| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `STOCK_NEWS` `REALTY_NEWS` `CRASH_NEWS` `MOODS` `BREAKING` |
+| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `LOCAL_NEWS` `STOCK_NEWS` `REALTY_NEWS` `CRASH_NEWS` `MOODS` `BREAKING` |
 | `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
-| `js/stock.js` | 주식장 | `screenPick`(금액·종목) `screenTrade` `runTicks`(가격 움직임) `doBuy` `doSell` `drawChart` `endTrade` |
-| `js/job.js` | 편의점 알바 | `ITEMS` `MONEY` `jobPay` `screenJob` `runJob` `startShop` |
+| `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
+| `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots` `startShop` |
 | `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
 | `tools/balance-bot.js` | 밸런스 봇 (게임 함수를 써서 30일 자동 플레이) | `runBot("skilled"/"average", 판수)` |
 | `tools/run-balance.py` | 봇 실행기 | |
 | `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 | |
 
 ### 상태 객체
-- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
+- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
 - `T` (stock.js): 1분 장 진행 상태. `J` (job.js): 알바 진행 상태.
 - `S.today` (day.js `startDay`): 오늘 뉴스 `items`, 섹터 영향 `eff`, 부동산 영향 `reEff` `reTypeEff` `rentEff` `rentTypeEff`, 분위기 `mood`
 
 ## 하루 흐름
 `startDay` → `screenNews` → `screenHub` → (`screenPick`→`screenTrade` | `screenListings`→`screenVisit` | `screenJob`→`runJob`) → `finishDay` → `screenDayEnd` → 다음 날 `startDay`
 - 안 쓴 현금은 자동 적금. 복권·내 자산·뉴스 보기는 행동을 쓰지 않음.
+- 승진·등급은 `finishDay`에서 처리: 편의점 좋은 근무(`S.jobGood`)·좋은 장(주식 수익 ≥ 투자금 5%)을 **누적**으로 세다가 `need`에 닿으면 다음 단계, 마감 팝업에 `promo` 배너.
+
+## 테크트리 (v0.6)
+- **편의점 루트:** 🧾 계산 알바(거스름돈, 30~100만) → 📦 물류 담당자(진열·유통기한 폐기, 60~150만) → 👔 점장(뉴스+동네 소식 보고 발주, 70~160만) → 🤝 인수 제안 → (다음) 🏪 사장: 매일 자동 순이익, 출근하면 보너스 → 2호점(상가 매물과 연결)
+- **투자 루트:** 🐜 개미 → 🦸 슈퍼개미(공매도: 종목 고를 때 방향 선택) → (다음) 📊 전업투자자(3종목, 자동 손절·익절) → 💼 펀드매니저(매일 운용보수 자동 수입 = 사장과 짝)
+- 직함 표기: "물류 담당자"(편의점엔 팀이 없음 — 사용자 지적). 조사는 `withRo()`로 자동.
+- 사장/펀드매니저는 "출근 안 해도 기본 수입 + 출근하면 보너스" (사용자 합의)
 - `finishDay`의 하루 기록(`S.history`) 항목: stock, job, save, rent, loan, re, lotto, deal(나머지 = 집 사고판 차익·세금). 새 수입원을 넣으면 **여기와 `CAT_STYLE`(day.js), 마감 팝업 줄**에 같이 추가.
 
 ## 설계 원칙 (사용자와 합의)
@@ -54,11 +61,13 @@
 
 | 봇 | 목표 | 현재 (v0.5, 200판) |
 |---|---|---|
-| 완벽한 봇 (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | 76%, 보통 DAY 24, 중간값 1.25억 |
-| 평범한 봇 (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,495만, 하위10% 1,690만 |
+| 투자형 봇 skilled (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | **82%** (약간 높음, 공매도 때문), 보통 DAY 24 |
+| 섞기 봇 hybrid | 투자형과 비슷 | 82.5%, 보통 DAY 25 |
+| 사업형 봇 biz (편의점만) | 사장 단계 전엔 1억 미만 | 중간값 5,552만 (점장 도달 100%) |
+| 평범한 봇 average (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,674만, 하위10% 1,809만 |
 
-- 완벽한 봇 행동: 주식 16.5일 / 임장 8.8일 / 알바 4.7일 (세 가지를 골고루 써야 이기는 게 좋은 상태)
-- 완벽한 봇 수익원: 월세 > 주식 > 매입 차익 > 집값 > 알바
+- 투자형 봇 행동: 주식 19.5일 / 임장 9일 / 편의점 1.6일. 수익원: 월세 > 주식 > 매입 차익 > 집값
+- 사장/펀드매니저 단계를 넣을 때 투자형 82%를 70~80%로 다시 맞출 것
 
 ### 숫자가 이렇게 된 이유 (바꾸기 전에 읽기)
 - `STOCK_TREND 0.5` / `STOCK_NOISE 1.4`: v0.3에서 완벽한 봇도 1억 0%여서 올림. 둘을 같이 올려서 "해석하기 나름"은 유지.
@@ -70,6 +79,9 @@
 - 대출 금리 = 기준금리 + 0.15%p: 대출 받아 적금 넣는 허점 방지.
 - 알바 일당 30~100만(실력제): 고정 100만이면 알바만 해도 위험 없이 3,000만 → 초반 정답이 알바가 돼버림.
 - 복권: 0.01%로 6천만만 있으면 30일 60장에도 당첨 0.6% → 등수를 4단계로 나눠 작은 당첨이 가끔 나오게.
+- 공매도 수수료 `SHORT_FEE 0.5%`: 공매도가 생기며 투자형이 84%로 올라서 넣음(효과는 작음, 84→82%). 슈퍼개미 조건 `need 4`.
+- 점장 일당 70~160만: 처음 80~200만이면 편의점만 해도 6,400만(위험 0) → 사장 단계의 매력이 줄어서 낮춤.
+- 편의점 일당은 단계 범위 안에서 실력제(`payOf`), 좋은 근무 기준은 job.js 각 미니게임 끝(`endShift`의 good).
 - 부동산 해금: 순자산 3,000만 **또는** DAY 7 (사용자가 "3천만 도달이 너무 어렵다"고 해서 DAY 조건 추가).
 - 매물 4개 중 최소 2개는 현재 현금으로 살 수 있게, 돈이 적으면 지방 소형 빌라를 끼워 넣음.
 
@@ -77,12 +89,16 @@
 1. **수정 후 확인:** `python tools/smoke-test.py` (오류 0이어야 함, 스크린샷은 `tools/shots/`, 커밋 안 함). 화면을 바꿨으면 스크린샷을 직접 보고 확인.
 2. **밸런스 확인:** 결산·가격·수익 관련 숫자를 바꾸면 `python tools/run-balance.py`. 결산 식을 바꾸면 `tools/balance-bot.js`의 같은 식도 맞춰서 고칠 것.
 3. 테스트 실행 환경: `pip install playwright`. 시스템 크롬을 쓰려면 `CHROME_PATH=/usr/bin/google-chrome`.
-4. 랜덤은 `dayRng(salt)`(씨앗 고정)를 쓰면 같은 씨앗에서 같은 결과 → 비교 테스트 가능. salt 번호: 1 뉴스, 2 주식장, 3 저녁 결산, 5 매물, 6 복권.
+4. 랜덤은 `dayRng(salt)`(씨앗 고정)를 쓰면 같은 씨앗에서 같은 결과 → 비교 테스트 가능. salt 번호: 1 뉴스, 2 주식장, 3 저녁 결산, 5 매물, 6 복권, 7 점장 발주(동네 소식·수요), 9 봇 전용.
 5. **배포:** `main`에 push하면 GitHub Pages(https://donkeyju.github.io/Morning-trader/)에 자동 반영. 사용자가 Settings → Pages에서 직접 켜야 함(이 환경에서 Pages API는 막혀 있음).
 6. 커밋 메시지는 한국어로, 무엇을 왜 바꿨는지.
-7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.5). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
+7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.6). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
 
-## 다음에 할 것 (아이디어, 미정)
+## 다음에 할 것
+**합의된 순서:** ① 편의점 승진 사다리 ✅ ② 주식 등급(슈퍼개미 공매도) ✅ ③ 사장(가게 인수) / 펀드매니저 — 자동 수입 단계 ④ 확장(2호점, 3종목, 자동 손절·익절)
+- ③ 사장 설계 메모: 가게 = 부동산처럼 매일 저녁 자동 정산 자산. 순이익 = 매출 − 원가 − 임대료 − 인건비, 매출 = 기본 × 상권 × 뉴스 수요 × (출근 +50%). 출근하면 발주 게임. 관리(직원·업그레이드·매각)는 행동 소모 없음. 인수가 예: 5,000만, 30% + 수수료, 나머지 대출. 2호점은 상가 매물을 사서 차리거나 임차.
+
+### 아이디어 (미정)
 - 뉴스 분류 알바 (호재/악재 넘기기 → 뉴스 읽기 연습)
 - 힌트를 단계적으로 줄이는 숙련도 시스템
 - 블랙먼데이 때 집값도 빠지게 해서 "언제 팔지"가 중요해지게 (지금은 집을 한 번도 안 팔아도 이김) — 단, 신경 쓸 거리 늘리지 않는 선에서

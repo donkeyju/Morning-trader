@@ -39,6 +39,7 @@ function newRun(){
   S = { seed:Math.floor(Math.random()*1e6), day:1, cash:START_MONEY, base:0.004, savePct:30,
         prices:Object.fromEntries(STOCKS.map(s=>[s.k,s.base])), picks:[], today:null,
         reUnlocked:false, props:[], listings:[], visits:2, ltvSel:{}, hints:true, history:[], unlockDay:0, investPct:50, watch:[], lotto:[], lottoCost:0, jobPay:0, action:null,
+        career:{stage:0, good:0}, inv:{tier:0, good:0}, dir:{}, jobGood:false,   // 편의점 단계·주식 등급 (CAREER, INV_TIERS)
         rentLv:lv(), rentTypeLv:{villa:1,apt:1,shop:1} };
 }
 // 금리: 하나의 기준금리에 적금·대출이 같이 묶여 있다

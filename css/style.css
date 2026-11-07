@@ -159,3 +159,15 @@ canvas.ico{width:20px;height:20px;image-rendering:pixelated}
 .jt{position:absolute;right:8px;top:8px;font-family:"Do Hyeon";font-size:16px;padding:4px 8px;border:2px solid var(--line);animation:popup .2s}
 .jt.g{background:#d8f5e4;color:#1f6e3a}.jt.b{background:#ffd0d1;color:#a0182b}
 .summary .val{font-family:"Do Hyeon";font-size:17px;margin-top:1px}
+.promo{background:#4a3f7c;border:2px solid var(--gold);color:var(--gold);font-family:"Do Hyeon";font-size:17px;padding:8px 10px;text-align:center;animation:popup .3s}
+.shelves{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shelves button{font-family:"Do Hyeon";font-size:20px;padding:16px 4px;border:3px solid var(--line);box-shadow:0 4px 0 var(--line);background:var(--panel2);color:var(--ink)}
+.shelves button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.shelves button.trash{background:#4a2330;color:#ffb3b8}
+.goodbox{display:flex;align-items:center;justify-content:center;gap:10px;font-size:22px;font-family:"Do Hyeon"}
+.goodbox .gi{width:26px;height:30px;background:var(--c);border:2px solid var(--paperInk);box-shadow:inset 0 5px 0 rgba(255,255,255,.4)}
+.goodbox b{font-weight:400}
+.exp{font-family:"Nanum Gothic";font-size:14px;font-weight:800;padding:3px 8px;border:2px solid var(--paperInk);background:#d8f5e4}
+.exp.w{background:#ffe9a8}.exp.x{background:#d7263d;color:#fff}
+.ord{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.ord .ordt{font-family:"Do Hyeon";font-size:17px}

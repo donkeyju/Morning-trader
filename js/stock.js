@@ -10,6 +10,7 @@ function screenPick(){
   S.picks=S.picks.slice(0,2);
   app.innerHTML=`${hud()}
     <h2 class="sh">📈 오늘 투자할 2종목</h2>
+    <div class="small" style="text-align:left">${invBadge()}</div>
     <div class="box alloc">
       <div class="lab">현금 ${won(S.cash)} 중 얼마를 투자할까?</div>
       <div class="quick" id="amt" style="margin-top:6px">${[25,50,75,100].map(p=>`<button data-p="${p}" class="${S.investPct===p?'on':''}">${p}%</button>`).join('')}</div>
@@ -21,6 +22,7 @@ function screenPick(){
         <div class="sec">${s.sec} · ${VOL[s.v].size}</div><div class="nm">${s.name}</div>
         <div class="row"><span class="px">${s.code} ${Math.round(S.prices[s.k]).toLocaleString()}</span><span class="tag ${s.v}">${VOL[s.v].label}</span></div>
       </button>`).join('')}</div>
+    <div id="dirbox"></div>
     <div class="btns"><button class="btn sec" id="back">← 다른 걸 할래요</button><button class="btn sec" id="news">뉴스 보기</button></div>
     <button class="btn" id="next" disabled>1분 장 시작!</button>`;
   const amt=()=>{const iv=S.cash*S.investPct/100; document.getElementById('amtTxt').innerHTML=`투자 <b style="color:var(--ink)">${won(iv)}</b> (종목당 ${won(iv/2)}) · 나머지 ${won(S.cash-iv)}은 적금`;
@@ -28,7 +30,13 @@ function screenPick(){
   app.querySelectorAll('#amt button').forEach(b=>b.onclick=()=>{S.investPct=+b.dataset.p;beep(520,.04);amt();});
   amt();
   const refresh=()=>{app.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',S.picks.includes(c.dataset.k)));
-    document.getElementById('next').disabled=S.picks.length!==2||S.cash<10000;};
+    document.getElementById('next').disabled=S.picks.length!==2||S.cash<10000;
+    // 슈퍼개미부터: 종목마다 "오른다(매수) / 내린다(공매도)" 선택
+    const box=document.getElementById('dirbox');
+    box.innerHTML=S.inv.tier>=1&&S.picks.length?`<div class="box"><div class="lab">🦸 방향 고르기 (공매도: 떨어지면 돈을 벌고, 오르면 손해)</div>${S.picks.map(k=>{const st=STOCKS.find(x=>x.k===k), d=S.dir[k]||1;
+      return `<div class="ord"><div class="ordt">${st.name}</div><div class="quick">
+        <button data-dir="${k}" data-v="1" class="${d>0?'on':''}">📈 오른다 (매수)</button><button data-dir="${k}" data-v="-1" class="${d<0?'on':''}">📉 내린다 (공매도)</button></div></div>`;}).join('')}</div>`:'';
+    box.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{S.dir[b.dataset.dir]=+b.dataset.v; beep(520,.04); refresh();});};
   app.querySelectorAll('.card').forEach(c=>c.onclick=()=>{const k=c.dataset.k;
     if(S.picks.includes(k)) S.picks=S.picks.filter(x=>x!==k); else { if(S.picks.length>=2) S.picks.shift(); S.picks.push(k);} beep(600,.04); refresh();});
   refresh();
@@ -49,7 +57,8 @@ function screenTrade(){
   T={tick:0,running:false,active:0,ratio:.5,invest,rng:r,bTick:-1,
      stocks:S.picks.map(k=>{const s=STOCKS.find(x=>x.k===k), v=VOL[s.v], p=S.prices[k];
        return {...s, vol:v.n, mcap:v.mcap, drift:clamp(S.today.eff[k],-1,1)*STOCK_TREND*v.t, price:p, open:p, hist:[p], z:0,
-               budget:invest/2, cash:invest/2, shares:0, avg:0, marks:[], alertUntil:-1, slipCost:0};})};
+               budget:invest/2, cash:invest/2, shares:0, avg:0, marks:[], alertUntil:-1, slipCost:0,
+               dir:S.inv.tier>=1?(S.dir[k]||1):1};})};   // dir: 1 매수, -1 공매도
   if(r()<.30){T.bTick=200+Math.floor(r()*200); T.bIdx=Math.floor(r()*2); T.bEvt=BREAKING[Math.floor(r()*BREAKING.length)];}
 
   app.innerHTML=`
@@ -86,6 +95,8 @@ function runTicks(){
       beep(1200,.15,'sawtooth',.06); setTimeout(()=>beep(900,.15,'sawtooth',.06),180); buzz([80,60,80]);
     }
     T.stocks.forEach(s=>{
+      // 공매도는 주가가 2배가 되면 손실이 원금 전부라서 강제 청산
+      if(s.dir<0&&s.shares>0&&s.price>=2*s.avg*.98){ sellCore(s,s.shares); s.marks.push({i:s.hist.length-1,t:'s'}); toast(`${s.name} 공매도 강제 청산!`); }
       s.z=.85*s.z+.527*gauss(T.rng);
       s.price*=Math.exp(s.drift*dt + s.vol*Math.sqrt(dt)*s.z*.33*STOCK_NOISE); // .33: 흐름이 이어지는 만큼 크기를 보정
       s.hist.push(s.price);
@@ -102,20 +113,27 @@ const buyAmt=s=>T.ratio>=1? s.cash : Math.min(s.cash, s.budget*T.ratio);
 const sellSh=s=>T.ratio>=1? s.shares : s.shares*T.ratio;
 let toastTimer=null;
 function toast(msg){const t=document.getElementById('toast'); if(!t)return; t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1400);}
+// 매수: 비싸게 사짐 (현재가 × (1+밀림)) / 공매도: 싸게 팔림 (현재가 × (1−밀림))
+const enterName=s=>s.dir>0?'매수':'공매도', exitName=s=>s.dir>0?'매도':'갚기';
 function doBuy(){ if(!T||!T.running)return; const s=T.stocks[T.active], amt=buyAmt(s);
-  if(amt<1000){beep(200,.08);toast('살 현금이 없어요');return;}
-  const slip=amt/s.mcap, fill=s.price*(1+slip), sh=amt*(1-FEE)/fill;
+  if(amt<1000){beep(200,.08);toast('쓸 현금이 없어요');return;}
+  const slip=amt/s.mcap, fill=s.price*(1+s.dir*slip), sh=amt*(1-FEE-(s.dir<0?SHORT_FEE:0))/fill;
   s.avg=(s.avg*s.shares+fill*sh)/(s.shares+sh); s.shares+=sh; s.cash-=amt; s.slipCost+=amt*slip;
   s.marks.push({i:s.hist.length-1,t:'b'}); beep(988,.06);beep(1318,.08); buzz(30);
-  toast(`매수 ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 +${(slip*100).toFixed(1)}%)`); updTrade(); }
-function sellCore(s,sh){const amt=sh*s.price, slip=amt/s.mcap, fill=s.price*(1-slip);
-  s.cash+=sh*fill*(1-FEE); s.shares-=sh; s.slipCost+=amt*slip; if(s.shares<1e-9){s.shares=0;s.avg=0;} return {amt,slip,fill};}
+  toast(`${enterName(s)} ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 ${(slip*100).toFixed(1)}%)`); updTrade(); }
+// 청산: 매수는 팔아서 현금으로 / 공매도는 "들어간 가격 × 2 − 지금 가격"만큼 돌려받음 (떨어질수록 이득)
+function sellCore(s,sh){const amt=sh*s.price, slip=amt/s.mcap;
+  let fill;
+  if(s.dir>0){ fill=s.price*(1-slip); s.cash+=sh*fill*(1-FEE); }
+  else { fill=s.price*(1+slip); s.cash+=sh*Math.max(0,2*s.avg-fill)*(1-FEE); }
+  s.shares-=sh; s.slipCost+=amt*slip; if(s.shares<1e-9){s.shares=0;s.avg=0;} return {amt,slip,fill};}
 function doSell(){ if(!T||!T.running)return; const s=T.stocks[T.active], sh=sellSh(s);
-  if(sh<=0){beep(200,.08);toast('팔 주식이 없어요');return;}
+  if(sh<=0){beep(200,.08);toast(s.dir>0?'팔 주식이 없어요':'갚을 공매도가 없어요');return;}
   const {amt,slip,fill}=sellCore(s,sh);
   s.marks.push({i:s.hist.length-1,t:'s'}); beep(659,.06);beep(523,.08); buzz(30);
-  toast(`매도 ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 -${(slip*100).toFixed(1)}%)`); updTrade(); }
-const val=s=>s.cash+s.shares*s.price;
+  toast(`${exitName(s)} ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 ${(slip*100).toFixed(1)}%)`); updTrade(); }
+const posVal=s=>s.dir>0? s.shares*s.price : Math.max(0,s.shares*(2*s.avg-s.price));
+const val=s=>s.cash+posVal(s);
 function updTrade(){
   if(!T)return;
   const left=Math.max(0,(TICKS-T.tick)*TICK_MS/1000);
@@ -123,15 +141,16 @@ function updTrade(){
   document.getElementById('tb').style.width=(100*(TICKS-T.tick)/TICKS)+'%';
   T.stocks.forEach((s,i)=>{const ch=s.price/s.open-1; const tp=document.getElementById('tp'+i);
     tp.textContent=pct(ch); tp.className=cls(ch);
-    document.getElementById('tc'+i).textContent=(s.shares>0?'● ':'')+s.code;
+    document.getElementById('tc'+i).textContent=(s.shares>0?'● ':'')+(s.dir<0?'▼':'')+s.code;
     const tab=app.querySelector(`.tab[data-i="${i}"]`); tab.classList.toggle('on',i===T.active);
     tab.classList.toggle('alert',i!==T.active&&s.alertUntil>T.tick);});
   const s=T.stocks[T.active], ch=s.price/s.open-1;
   document.getElementById('qn').textContent=s.name;
-  document.getElementById('qs').textContent=s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
+  document.getElementById('qs').textContent=(s.dir<0?'📉 공매도 · ':'')+s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
+  document.getElementById('buy').textContent=enterName(s); document.getElementById('sell').textContent=exitName(s);
   document.getElementById('qp').innerHTML=`<span class="${cls(ch)}">${Math.round(s.price).toLocaleString()}<small>${pct(ch)}</small></span>`;
-  const held=s.shares*s.price/val(s);
-  document.getElementById('ps').textContent=s.shares>0?`주식 ${Math.round(held*100)}%`:'현금 100%';
+  const held=posVal(s)/Math.max(1,val(s));
+  document.getElementById('ps').textContent=s.shares>0?`${s.dir>0?'주식':'공매도'} ${Math.round(held*100)}%`:'현금 100%';
   document.getElementById('ps').style.color=s.shares>0?'var(--gold)':'';
   document.getElementById('pa').textContent=s.shares>0?Math.round(s.avg).toLocaleString():'-';
   document.getElementById('pv').textContent=won(val(s));
@@ -139,7 +158,7 @@ function updTrade(){
   const tot=T.stocks.reduce((a,x)=>a+val(x)-x.budget,0); const tEl=document.getElementById('tot'); tEl.textContent=won(tot,true); tEl.className=cls(tot);
   app.querySelectorAll('#ratio button').forEach(b=>b.classList.toggle('on',+b.dataset.r===T.ratio));
   const ba=buyAmt(s), sa=sellSh(s)*s.price;
-  document.getElementById('slip').textContent=`매수 ${won(ba)} (밀림 ${(ba/s.mcap*100).toFixed(1)}%) · 매도 ${won(sa)} (밀림 ${(sa/s.mcap*100).toFixed(1)}%)`;
+  document.getElementById('slip').textContent=`${enterName(s)} ${won(ba)} (밀림 ${(ba/s.mcap*100).toFixed(1)}%) · ${exitName(s)} ${won(sa)} (밀림 ${(sa/s.mcap*100).toFixed(1)}%)`;
 }
 function drawChart(){
   const c=document.getElementById('ch'); if(!c||!T)return; const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
@@ -170,6 +189,13 @@ function endTrade(){
   document.getElementById('buy').disabled=true; document.getElementById('sell').disabled=true;
   const cd=document.getElementById('cd'); cd.textContent='장 마감'; cd.style.fontSize='34px'; cd.style.fontFamily='Do Hyeon';
   beep(523,.12);setTimeout(()=>beep(392,.2),150);
-  const result=T.stocks.map(s=>({name:s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
+  const result=T.stocks.map(s=>({name:(s.dir<0?'📉 ':'')+s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
   setTimeout(()=>{T=null;finishDay(result);},1400);
+}
+
+// 투자자 등급 표시: "🐜 개미 · 슈퍼개미까지 ●●○○"
+function invBadge(){
+  const t=INV_TIERS[S.inv.tier], nx=INV_TIERS[S.inv.tier+1];
+  return `${t.icon} <b style="color:var(--ink)">${t.title}</b>`+(t.need&&nx?` · ${nx.icon} ${nx.title}까지 <b class="stars">${dots(S.inv.good,t.need)}</b> (투자금의 +${INV_GOOD*100}% 이상 번 장 ${S.inv.good}/${t.need})`
+    :(S.inv.tier>=1?' · 공매도 사용 가능':''));
 }
