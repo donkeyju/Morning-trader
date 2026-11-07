@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>모닝 트레이더 PoC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Nanum+Gothic:wght@400;700;800&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1b1830; --panel:#2b2546; --panel2:#3a3260; --ink:#f4ecd8; --dim:#a79fc4;
+  --paper:#f3e8cf; --paperInk:#2a2230; --line:#0d0b18;
+  --gold:#ffd166; --up:#ff5a5f; --down:#4ea8ff; --ok:#5ad19a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Nanum Gothic",sans-serif;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+#app{max-width:440px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;gap:12px}
+.px{font-family:"Silkscreen",monospace}
+.dh{font-family:"Do Hyeon","Nanum Gothic",sans-serif;font-weight:400}
+.box{background:var(--panel);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px}
+canvas.pix{width:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block;border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);background:#000}
+.btn{font-family:"Do Hyeon",sans-serif;font-size:22px;border:3px solid var(--line);box-shadow:0 5px 0 var(--line);background:var(--gold);color:#2a1d05;padding:14px 10px;width:100%;cursor:pointer;transition:transform .05s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--line)}
+.btn:disabled{filter:grayscale(1) brightness(.6)}
+.btn.sec{background:var(--panel2);color:var(--ink)}
+.btn.sm{font-size:17px;padding:9px 8px;box-shadow:0 3px 0 var(--line)}
+.hud{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--dim)}
+.hud b{color:var(--ink);font-size:16px}
+.title-logo{text-align:center;margin-top:8px}
+.title-logo .en{font-size:30px;color:var(--gold);text-shadow:3px 3px 0 var(--line);letter-spacing:1px}
+.title-logo .ko{font-size:22px;margin-top:2px}
+.rules{font-size:14px;line-height:1.7}
+.paper{background:var(--paper);color:var(--paperInk);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px 14px}
+.paper .mast{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px double var(--paperInk);padding-bottom:6px;margin-bottom:6px}
+.paper .mast .name{font-family:"Do Hyeon";font-size:26px}
+.paper .mast .date{font-size:12px}
+.news{padding:9px 0;border-bottom:1px dashed #b9a98a}
+.news:last-child{border-bottom:none}
+.news .src{display:inline-block;font-size:11px;font-weight:800;padding:1px 5px;border:2px solid var(--paperInk);margin-right:6px;vertical-align:2px}
+.news .src.rumor{background:#2a2230;color:var(--gold)}
+.news h3{display:inline;font-family:"Do Hyeon";font-weight:400;font-size:19px;line-height:1.3}
+.news p{margin:4px 0 0;font-size:13px;line-height:1.5;color:#5a4d5e}
+.alloc .big{display:flex;gap:10px}
+.alloc .big>div{flex:1;text-align:center;padding:10px 4px;border:3px solid var(--line)}
+.lab{font-size:13px;color:var(--dim)}
+.alloc .val{font-family:"Do Hyeon";font-size:24px;margin-top:2px}
+input[type=range]{width:100%;margin:16px 0 6px;accent-color:var(--gold);height:28px}
+.quick{display:flex;gap:6px}
+.quick button{flex:1;font-family:"Do Hyeon";font-size:15px;padding:7px 0;border:2px solid var(--line);background:var(--panel2);color:var(--ink)}
+.quick button.on{background:var(--gold);color:#2a1d05}
+.rate{font-size:14px;line-height:1.6}
+.rate b{color:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--panel);border:3px solid var(--line);box-shadow:3px 3px 0 var(--line);padding:10px;text-align:left;color:var(--ink);font-family:"Nanum Gothic"}
+.card .sec{font-size:12px;color:var(--dim)}
+.card .nm{font-family:"Do Hyeon";font-size:18px;margin:2px 0}
+.card .row{display:flex;justify-content:space-between;align-items:center;font-size:12px;gap:4px}
+.tag{font-size:11px;padding:1px 5px;border:2px solid var(--line);white-space:nowrap}
+.tag.low{background:#3f7a5c}.tag.mid{background:#7a6a3f}.tag.high{background:#8a3f4f}
+.card.sel{background:#4a3f7c;outline:3px solid var(--gold);outline-offset:-6px}
+.topbar{display:flex;align-items:center;gap:10px}
+.topbar .tm{font-family:"Silkscreen";font-size:22px;width:70px;color:var(--gold)}
+.tbar{flex:1;height:14px;border:3px solid var(--line);background:#120f22}
+.tbar i{display:block;height:100%;background:var(--gold);width:100%}
+.breaking{background:#d7263d;color:#fff;border:3px solid var(--line);padding:8px 10px;font-family:"Do Hyeon";font-size:18px;display:none}
+.breaking.show{display:block;animation:shake .4s 3}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tabs{display:flex;gap:8px}
+.tab{flex:1;background:var(--panel);border:3px solid var(--line);color:var(--ink);padding:8px 4px;font-family:"Silkscreen";font-size:15px;line-height:1.3}
+.tab small{display:block;font-size:13px}
+.tab.on{background:var(--panel2);box-shadow:inset 0 -5px 0 var(--gold)}
+.tab.alert{animation:blink .35s steps(1) infinite}
+@keyframes blink{50%{background:#d7263d}}
+.chartwrap{position:relative}
+.cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Silkscreen";font-size:56px;color:var(--gold);text-shadow:4px 4px 0 var(--line);pointer-events:none}
+.toast{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:rgba(13,11,24,.9);border:2px solid var(--gold);color:var(--ink);font-size:13px;padding:5px 9px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.quote{display:flex;justify-content:space-between;align-items:flex-end}
+.quote .nm{font-family:"Do Hyeon";font-size:20px}
+.quote .pr{font-family:"Silkscreen";font-size:22px;text-align:right}
+.quote .pr small{display:block;font-size:14px}
+.up{color:var(--up)}.down{color:var(--down)}
+.paper .up{color:#d7263d}.paper .down{color:#1f6fc7}
+.pos{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:13px;color:var(--dim)}
+.pos b{color:var(--ink)}
+.btns{display:flex;gap:10px}
+.btn.buy{background:var(--up);color:#fff}
+.btn.sell{background:var(--down);color:#fff}
+.btn.big{font-size:28px;padding:16px 8px}
+.linkbtn{background:none;border:none;color:var(--dim);font-size:13px;text-decoration:underline;padding:4px;font-family:"Nanum Gothic"}
+.sheet{position:fixed;inset:0;background:rgba(10,8,20,.7);display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sheet .paper{max-width:440px;width:100%;max-height:70vh;overflow:auto;margin:0 8px 8px}
+.res-big{text-align:center}
+.res-big .pl{font-family:"Do Hyeon";font-size:40px}
+.res-big .msg{font-family:"Do Hyeon";font-size:20px;color:var(--gold);margin-top:2px}
+.lines{font-size:14px;line-height:1.9}
+.lines div{display:flex;justify-content:space-between;gap:8px}
+.lines .sub{font-size:12px;color:var(--dim);line-height:1.5}
+.prog{height:18px;border:3px solid var(--line);background:#120f22;margin-top:8px;position:relative}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,#5ad19a,#ffd166)}
+.prog span{position:absolute;inset:0;text-align:center;font-size:11px;line-height:12px;font-family:"Silkscreen";color:#fff;text-shadow:1px 1px 0 #000}
+.reveal .news h3{font-size:16px}
+.chip{display:inline-block;font-size:12px;font-weight:800;padding:1px 6px;margin:4px 4px 0 0;border:2px solid var(--paperInk)}
+.chip.u{background:#ffd0d1}.chip.d{background:#cfe6ff}
+.small{font-size:12px;color:var(--dim);text-align:center}
+h2.sh{font-family:"Do Hyeon";font-weight:400;font-size:22px;margin:0}
+h3.sub{font-family:"Do Hyeon";font-weight:400;font-size:18px;margin:4px 0 -4px;color:var(--gold)}
+.re{background:var(--panel);border:3px solid var(--line);box-shadow:3px 3px 0 var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.re.own{background:#2f3a52}
+.re .top{display:flex;justify-content:space-between;align-items:baseline}
+.re .nm{font-family:"Do Hyeon";font-size:19px}
+.re .kv{display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;font-size:13px;color:var(--dim)}
+.re .kv b{color:var(--ink)}
+.re .st{font-size:13px;padding:4px 8px;border:2px solid var(--line);background:#1d1834}
+.re .st.vac{background:#4a2330;color:#ffb3b8}
+.re .st.ok{background:#1f3d33;color:#a8f0cd}
+.re .lbl{font-size:12px;color:var(--dim);margin-bottom:-3px}
+.re .act{display:flex;gap:8px;align-items:center}
+.re .act .need{flex:1;font-size:13px;color:var(--dim)}
+.re .act .need b{color:var(--ink)}
+.re .act .btn{width:auto;padding:8px 16px}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center}
+.summary>div{background:var(--panel);border:3px solid var(--line);padding:7px 2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--dim)}
+.legend span{display:flex;align-items:center;gap:3px}
+canvas.ico{width:20px;height:20px;image-rendering:pixelated}
+.re .st.sell{background:#3d3420;color:var(--gold)}
+.locsum,.feats{display:flex;flex-wrap:wrap;gap:6px}
+.lb{display:flex;align-items:center;gap:3px;font-size:13px;padding:3px 7px;border:2px solid var(--line);background:var(--panel)}
+.lb.g{background:#1f3d33;color:#a8f0cd}.lb.b{background:#4a2330;color:#ffb3b8}
+.stars{color:var(--gold);letter-spacing:1px}
+.fb{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.3;padding:5px 8px;border:2px solid var(--line)}
+.fb.g{background:#1f3d33;color:#a8f0cd}.fb.b{background:#4a2330;color:#ffb3b8}
+.fb b{color:var(--ink);font-size:13px}
+.rrow{display:grid;grid-template-columns:12px 104px 1fr 82px;gap:8px;align-items:center;font-size:13px;padding:3px 0}
+.rrow b{font-size:14px;text-align:right}
+.rbar{height:10px;background:#120f22;border:2px solid var(--line)}.rbar i{display:block;height:100%}
+.sw{display:inline-block;width:10px;height:10px;border:1px solid var(--line)}
+.actc{display:flex;align-items:center;gap:12px;text-align:left;background:var(--panel);color:var(--ink);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px 14px;font-family:"Nanum Gothic"}
+.actc:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--line)}
+.actc:disabled{opacity:.55}
+.actc .ai{font-size:30px}
+.actc b{display:block;font-family:"Do Hyeon";font-weight:400;font-size:21px}
+.actc small{display:block;font-size:13px;color:var(--dim);margin-top:2px}
+.side{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sidec{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:8px 4px;text-align:center;font-family:"Nanum Gothic"}
+.sidec:disabled{opacity:.5}
+.sidec b{display:block;font-family:"Do Hyeon";font-weight:400;font-size:16px}
+.sidec small{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+.modal{position:fixed;inset:0;background:rgba(10,8,20,.72);display:flex;align-items:flex-end;justify-content:center;z-index:20;padding:0 8px calc(env(safe-area-inset-bottom) + 8px)}
+.pop{max-width:440px;width:100%;max-height:86vh;overflow:auto;background:var(--panel);border:3px solid var(--line);box-shadow:0 -4px 0 var(--line);padding:14px;display:flex;flex-direction:column;gap:10px;animation:popup .25s ease-out}
+@keyframes popup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.pophead{display:flex;justify-content:space-between;align-items:center;font-family:"Do Hyeon";font-size:18px;color:var(--gold)}
+.pop .logs{font-size:12px;color:var(--dim);line-height:1.6}
+.tickets{display:flex;gap:8px}
+.tk{flex:1;height:54px;border:3px solid var(--line);background:repeating-linear-gradient(45deg,#8a8aa0 0 6px,#a0a0b8 6px 12px);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Do Hyeon";font-size:22px;color:#fff;transition:transform .2s}
+.tk.open{transform:rotateY(360deg)}
+.tk.win{background:#ffd166;color:#2a1d05}.tk.lose{background:#3a3260;color:var(--dim)}
+.tk small{font-size:12px}
+.money{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.money button{font-family:"Silkscreen";font-size:13px;padding:14px 0;border:3px solid var(--line)}
+.money .bill{background:#7fb36a;color:#11240b}.money .coin{background:#d9c27a;color:#2a1d05;border-radius:50%/40%}
+.rl{display:flex;justify-content:space-between;font-size:14px;line-height:1.6}
+.rl.tot{border-top:2px dashed #b9a98a;margin-top:2px;padding-top:2px;font-weight:800}
+.rl.paid{font-family:"Do Hyeon";font-size:18px;color:#1f6fc7}
+#receipt{position:relative}
+.jt{position:absolute;right:8px;top:8px;font-family:"Do Hyeon";font-size:16px;padding:4px 8px;border:2px solid var(--line);animation:popup .2s}
+.jt.g{background:#d8f5e4;color:#1f6e3a}.jt.b{background:#ffd0d1;color:#a0182b}
+.summary .val{font-family:"Do Hyeon";font-size:17px;margin-top:1px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =========================================================
+   모닝 트레이더 PoC v2
+   하루 흐름: 아침 뉴스 → 부동산 관리 → 적금/주식 배분 → 2종목 고르기
+            → 1분 장(분할 매매) → 저녁 결산(월세·이자·집값) → 다음 날
+   목표: 30일 안에 순자산 1,000만 원 → 1억
+   ========================================================= */
+
+/* ---------- 1. 기본 설정값 ---------- */
+const START_MONEY = 10_000_000;
+const GOAL = 100_000_000;
+const DAYS = 30;
+const TICKS = 600, TICK_MS = 100;  // 1분 = 0.1초 × 600번
+const FEE = 0.0015;
+const STOCK_TREND = 0.5;          // 뉴스가 만드는 1분 추세의 세기
+const STOCK_NOISE = 1.4;          // 랜덤 흔들림 배율 (추세와 같이 키워서 '해석하기 나름'은 유지)                // 주식 수수료 0.15%
+const LOAN_SPREAD = 0.0015;        // 대출금리 = 기준금리 + 0.15%p
+const RE_TAX = 0.01;               // 부동산 살 때·팔 때 비용 1%
+const CONTRACT_DAYS = 5;           // 세입자 계약 기간
+
+/* ---------- 2. 주식 종목 ----------
+   mcap = 시장 크기. 내 주문이 이것에 비해 클수록 체결가가 밀린다(슬리피지). */
+const STOCKS = [
+  {k:'semi',  sec:'반도체',      name:'루미나세미콘',     code:'LUMN', v:'mid',  base:72000},
+  {k:'bio',   sec:'바이오',      name:'젠타리스바이오',   code:'GNTR', v:'high', base:38000},
+  {k:'build', sec:'건설',        name:'한결건설',         code:'HKCN', v:'low',  base:21000},
+  {k:'ent',   sec:'엔터',        name:'스텔라웨이브',     code:'STLW', v:'mid',  base:54000},
+  {k:'energy',sec:'에너지',      name:'볼테라에너지',     code:'VOLT', v:'mid',  base:46000},
+  {k:'food',  sec:'식품',        name:'온담푸드',         code:'ONDM', v:'low',  base:31000},
+  {k:'space', sec:'우주항공',    name:'카이로스에어로',   code:'KAIR', v:'high', base:27000},
+  {k:'auto',  sec:'자동차(로봇)',name:'오토메타모빌리티', code:'ATMT', v:'mid',  base:63000},
+];
+const SEC_NAME = Object.fromEntries(STOCKS.map(s=>[s.k, s.sec]));
+const VOL = {
+  low: {n:0.06, t:0.6, label:'안정',  size:'대형주', mcap:2e9},
+  mid: {n:0.11, t:1.0, label:'보통',  size:'중형주', mcap:8e8},
+  high:{n:0.20, t:1.5, label:'급등락',size:'소형주', mcap:3e8},
+};
+
+/* ---------- 3. 부동산 ----------
+   매물 = 지역(3) × 유형(3) × 크기(3).  가격·월세·상승률·거래량은 지도(입지)와 집 안(하자·장점)이 정한다. */
+const UNLOCK_RE = 30_000_000;      // 순자산 3,000만 원 또는
+const UNLOCK_DAY = 7;              // DAY 7 중 먼저 오는 쪽에 부동산 중개소 오픈
+const REG = {
+  //            중형 아파트 기준가 / 매일 기본 상승률 / 흔들림 / 월세 수익률(하루) / 하루에 팔릴 확률 / 시설 개수 [역,학원,상권,공원,공장]
+  seoul:{name:'서울',  base:3e8,   drift:.0012, vol:.008, yieldT:{villa:.009, apt:.0072,shop:.0108}, liq:{villa:.5, apt:.85,shop:.45},
+         cnt:[[1,2],[1,3],[1,3],[1,2],[0,1]], ground:'#8b8b96', bld:['#6b6b7a','#7a7a88','#5d5d6b'], density:.85},
+  metro:{name:'수도권',base:1.5e8, drift:.0004, vol:.006, yieldT:{villa:.0108,apt:.009, shop:.0126}, liq:{villa:.38,apt:.65,shop:.33},
+         cnt:[[0,1],[0,2],[1,2],[0,2],[0,1]], ground:'#8e9781', bld:['#7b7f72','#8a7f6e','#6e7468'], density:.5},
+  local:{name:'지방',  base:6e7,   drift:-.0012,vol:.005, yieldT:{villa:.0135,apt:.0108,shop:.0162}, liq:{villa:.25,apt:.45,shop:.2 },
+         cnt:[[0,1],[0,1],[0,1],[0,1],[0,2]], ground:'#7ea35d', bld:['#8a7a5e','#9a8466','#7a6b52'], density:.22},
+};
+const TYPES = { villa:{name:'빌라',k:.6, vac:.05}, apt:{name:'아파트',k:1, vac:.03}, shop:{name:'상가',k:.8, vac:.12} };
+const SIZES = { s:{name:'소형',k:.5}, m:{name:'중형',k:1}, l:{name:'대형',k:1.8} };
+const AREA  = { villa:{s:12,m:20,l:32}, apt:{s:15,m:25,l:40}, shop:{s:10,m:20,l:35} };
+const CATS = ['station','academy','commerce','culture','nuisance'];
+const CAT_NAME = {station:'역', academy:'학원가', commerce:'상권', culture:'공원', nuisance:'공장'};
+// 유형마다 중요하게 보는 시설이 다르다 (공장은 마이너스)
+const LOC_W = {
+  villa:{station:.35, academy:.10, commerce:.25, culture:.15, nuisance:-.40},
+  apt:  {station:.30, academy:.40, commerce:.15, culture:.25, nuisance:-.50},
+  shop: {station:.30, academy:.05, commerce:.60, culture:.15, nuisance:-.30},
+};
+const MAP_R = 38;   // 지도에서 집 주변 "생활권" 반경 (점선 원)
+// 집 안 요소가 주는 영향 (호가에는 반영 안 됨!)
+const featRent  = f=>(f.sun?1.08:1)*(f.remodel?1.10:1)*(f.mold?.90:1);          // 월세
+const featGrowth= f=>(f.remodel?.001:0)+(f.view?.001:0)-(f.crack?.003:0);       // 매일 상승률
+const featLiq   = f=>(f.view?1.2:1)*(f.pipe?.7:1);                              // 팔릴 확률
+const featVac   = f=>(f.leak?.15:0)-(f.sun?.05:0);                              // 공실 확률
+const propName = p=>`${REG[p.r].name} ${SIZES[p.sz].name} ${TYPES[p.t].name}`;
+
+/* ---------- 4. 뉴스 ----------
+   e = 주식 섹터 영향, mkt = 주식시장 전체, re = 지역 집값, reAll = 전국 집값,
+   rent = 지역 월세 시세, rate = 기준금리 변화(하루 %p), rumor = 찌라시 */
+const STOCK_NEWS = [
+  {src:'경제일보', h:'AI 서버 수요 폭증, 메모리 가격 급등', b:'글로벌 빅테크들이 데이터센터 투자를 늘리며 메모리 반도체 품귀 현상이 이어지고 있다.', e:{semi:.5, auto:.1}},
+  {src:'산업신문', h:'국내 최대 반도체 단지 정전… 생산 차질', b:'변전소 고장으로 일부 라인이 멈췄다. 업계는 복구에 수일이 걸릴 것으로 본다.', e:{semi:-.4}},
+  {src:'국제뉴스', h:'미국, 반도체 장비 수출 규제 강화 검토', b:'규제가 현실화되면 국내 반도체 기업의 해외 공장 운영에 부담이 될 전망이다.', e:{semi:-.3}},
+  {src:'메디컬타임', h:'국산 신약, 임상 3상 최종 성공', b:'주요 지표에서 기존 치료제보다 뛰어난 효과를 확인했다. 해외 기술수출 기대감도 커졌다.', e:{bio:.6}},
+  {src:'메디컬타임', h:'식약처, 바이오 신약 허가 잇따라 보류', b:'안전성 자료 보완을 요구하며 심사가 길어지고 있다.', e:{bio:-.4}},
+  {src:'사회일보', h:'신종 호흡기 감염병 확산 조짐', b:'보건당국이 대규모 행사 자제를 권고했다. 진단키트와 백신 관련 문의가 늘고 있다.', e:{bio:.4, ent:-.35, food:.1}},
+  {src:'경제일보', h:'중앙은행, 기준금리 인상', b:'물가를 잡기 위한 결정이다. 예금 이자는 오르지만 대출 이자 부담도 커진다.', e:{build:-.35, bio:-.1, space:-.1}, reAll:-.25, rate:.15},
+  {src:'경제일보', h:'중앙은행, 깜짝 금리 인하', b:'경기 둔화 우려에 선제 대응했다. 대출 이자가 줄어 부동산과 성장주에 숨통이 트일 전망이다.', e:{build:.4, space:.15, bio:.1}, reAll:.25, rate:-.15},
+  {src:'사회일보', h:'아파트 건설 현장 붕괴… 전국 안전점검', b:'정부가 전국 현장에 대한 일제 점검을 지시해 공사 지연이 불가피해졌다.', e:{build:-.45}},
+  {src:'연예투데이', h:'K팝 그룹 월드투어 40회 전석 매진', b:'북미·유럽 공연이 추가되며 역대 최대 투어 매출이 예상된다.', e:{ent:.45}},
+  {src:'연예투데이', h:'흥행 드라마 표절 논란 일파만파', b:'해외 원작사가 법적 대응을 예고했다. 방영 중단 가능성도 거론된다.', e:{ent:-.4}},
+  {src:'국제뉴스', h:'국제 유가 배럴당 120달러 돌파', b:'중동 정세 불안으로 원유 공급 우려가 커졌다. 물류비와 원재료비 부담이 커질 전망이다.', e:{energy:.5, food:-.3, auto:-.2, space:-.1}},
+  {src:'국제뉴스', h:'산유국 증산 합의, 유가 급락', b:'주요 산유국이 생산량을 늘리기로 하면서 유가가 하루 만에 12% 떨어졌다.', e:{energy:-.45, food:.2, auto:.15}},
+  {src:'날씨와생활', h:'기록적 폭염, 전력 수요 사상 최대', b:'냉방 수요가 몰리며 전력 예비율이 바닥을 쳤다. 빙과·음료 판매도 급증했다.', e:{energy:.3, food:.25}},
+  {src:'국제뉴스', h:'이상 기후로 국제 곡물 가격 급등', b:'밀·옥수수 가격이 한 달 새 30% 올랐다. 가공식품 원가 부담이 커지고 있다.', e:{food:-.35}},
+  {src:'경제일보', h:'K-푸드 열풍, 라면 수출 역대 최대', b:'해외 SNS에서 매운 라면 챌린지가 유행하며 수출이 급증했다.', e:{food:.45, ent:.1}},
+  {src:'과학신문', h:'민간 우주발사체 궤도 진입 성공', b:'국내 민간 기업 최초로 위성을 목표 궤도에 올렸다. 상업 발사 수주 기대가 커졌다.', e:{space:.6}},
+  {src:'과학신문', h:'위성 발사 실패, 발사체 공중 폭발', b:'발사 2분 만에 신호가 끊겼다. 다음 발사 일정은 무기한 연기됐다.', e:{space:-.55}},
+  {src:'정책브리핑', h:'우주항공 예산 내년 2배로 확대', b:'정부가 발사체·위성 산업 육성에 대규모 재정을 투입한다.', e:{space:.4}},
+  {src:'산업신문', h:'휴머노이드 로봇 1만 대 양산 계약', b:'물류 대기업과 대규모 공급 계약이 성사됐다. 로봇용 칩 수요도 함께 늘 전망이다.', e:{auto:.5, semi:.2}},
+  {src:'사회일보', h:'자율주행차 연쇄 사고, 대규모 리콜', b:'소프트웨어 결함이 원인으로 지목됐다. 판매 중단 조치도 검토 중이다.', e:{auto:-.5}},
+  {src:'정책브리핑', h:'전기차 보조금 내년부터 절반 축소', b:'재정 부담을 이유로 지원을 줄인다. 업계는 판매 감소를 우려한다.', e:{auto:-.3, energy:-.1}},
+  {src:'경제일보', h:'원·달러 환율 급등, 수출주 기대감', b:'달러 강세로 수출 기업의 원화 환산 이익이 늘어날 전망이다. 수입 원재료 부담은 커진다.', e:{semi:.2, auto:.2, food:-.15}},
+  {src:'경제일보', h:'소비 심리 3년 만에 최저', b:'고물가에 지갑이 닫히며 외식·공연 소비가 줄고 있다.', e:{food:-.1, ent:-.2, build:-.1}},
+  {src:'정책브리핑', h:'국회, AI·로봇 기본법 통과', b:'로봇 상용화 규제가 풀리면서 관련 산업 투자가 늘 것으로 보인다.', e:{auto:.35, semi:.15}},
+  {src:'연예투데이', h:'공정위, 대형 기획사 불공정 계약 조사', b:'소속 아티스트와의 수익 배분 구조를 들여다본다.', e:{ent:-.3}},
+  {src:'국제뉴스', h:'글로벌 증시 랠리, 외국인 매수 복귀', b:'미국 물가 지표가 예상보다 낮게 나오며 위험자산 선호가 살아났다.', mkt:.25},
+  {src:'찌라시', rumor:true, h:'카이로스에어로, 해외 대형 수주설', b:'업계에 "조 단위 계약이 임박했다"는 말이 돌고 있다. 회사는 "확인해 줄 수 없다"는 입장.', e:{space:.6}},
+  {src:'찌라시', rumor:true, h:'젠타리스바이오 임상 데이터 조작 의혹', b:'익명 게시판에 내부자라 주장하는 글이 올라왔다. 회사 측은 사실무근이라고 반박했다.', e:{bio:-.6}},
+  {src:'찌라시', rumor:true, h:'스텔라웨이브 간판 그룹 해체설', b:'멤버 재계약 협상이 결렬됐다는 소문이 퍼지고 있다.', e:{ent:-.5}},
+  {src:'찌라시', rumor:true, h:'루미나세미콘, 빅테크 인수설 솔솔', b:'해외 IT 공룡이 지분 인수를 검토 중이라는 이야기가 증권가에 돌고 있다.', e:{semi:.5}},
+];
+const REALTY_NEWS = [
+  {src:'부동산포커스', h:'정부, 수도권 신도시 30만 호 추가 공급', b:'건설사들은 일감이 늘지만, 집이 많아지면서 수도권 집값과 월세는 약세가 예상된다.', e:{build:.45}, re:{metro:-.3}, rent:{metro:-.3}},
+  {src:'부동산포커스', h:'수도권 광역급행철도 신노선 확정', b:'서울 도심까지 20분이면 닿는다. 수도권 매물 문의가 하루 만에 3배로 늘었다.', re:{metro:.5}, e:{build:.15}},
+  {src:'정책브리핑', h:'서울 재건축 규제 대폭 완화', b:'안전진단 기준이 낮아지며 노후 단지의 사업 속도가 빨라질 전망이다.', re:{seoul:.4}, reType:{apt:.15}},
+  {src:'정책브리핑', h:'노후 빌라촌 재개발 구역 대거 지정', b:'낡은 빌라 밀집 지역이 대규모 주거단지로 바뀐다. 빌라 매수 문의가 몰리고 있다.', reType:{villa:.45}},
+  {src:'사회일보', h:'전세사기 여파, 빌라 월세 수요 급증', b:'전세를 꺼리는 세입자들이 월세로 몰리면서 빌라 월세가 오르고 있다. 매매가는 약세다.', rentType:{villa:.45}, reType:{villa:-.2}},
+  {src:'교육신문', h:'지방 대학 통폐합, 원룸촌 공실 비상', b:'학생이 빠져나가며 대학가 주변 빈방이 크게 늘고 있다.', rent:{local:-.4}, re:{local:-.2}},
+  {src:'산업신문', h:'지방 혁신도시에 대기업 배터리 공장 유치', b:'일자리 5천 개가 생긴다. 인근 주택 임대 문의가 폭주하고 있다.', re:{local:.5}, rent:{local:.35}},
+  {src:'정책브리핑', h:'부동산 보유세 대폭 인상 발표', b:'다주택자 세 부담이 크게 늘어난다. 매물이 쏟아질 수 있다는 관측이 나온다.', reAll:-.35},
+  {src:'정책브리핑', h:'주택담보대출 규제 대폭 완화', b:'대출 한도가 늘면서 매수 대기 수요가 움직일 전망이다.', reAll:.35, e:{build:.2}},
+  {src:'경제일보', h:'온라인 쇼핑 급증, 오프라인 상권 침체', b:'거리 상점의 매출이 1년 새 20% 줄었다. 빈 상가가 눈에 띄게 늘고 있다.', reType:{shop:-.35}, rentType:{shop:-.3}},
+  {src:'정책브리핑', h:'골목상권 살리기 지원금 대규모 투입', b:'소상공인 임대료와 인테리어 비용을 지원한다. 상가 임대 문의가 늘고 있다.', rentType:{shop:.4}, reType:{shop:.2}},
+  {src:'관광신문', h:'K-관광 열풍, 서울 상가 임대 문의 폭주', b:'외국인 관광객이 역대 최대를 기록하며 서울 주요 상권 공실이 빠르게 줄고 있다.', rentType:{shop:.3}, re:{seoul:.15}},
+  {src:'찌라시', rumor:true, h:'수도권 신노선 백지화설 확산', b:'"예산이 부족하다"는 말이 부동산 커뮤니티에 돌고 있다. 국토부는 "검토 중"이라는 입장.', re:{metro:-.5}},
+];
+// 블랙먼데이 힌트 기사 (이게 보이면 주식 전체가 크게 빠지는 날)
+const CRASH_NEWS = [
+  {src:'국제뉴스', h:'밤사이 미국 증시 7% 폭락, 공포지수 최고', b:'대형 기술주가 일제히 무너졌다. 아시아 증시도 개장 직후 큰 충격이 예상된다.', mkt:-.6, reAll:-.1},
+  {src:'국제뉴스', h:'글로벌 대형 은행 파산설에 금융시장 패닉', b:'예금 인출 사태가 번지며 세계 금융시장이 얼어붙었다. 안전자산으로 돈이 몰리고 있다.', mkt:-.55, reAll:-.1},
+];
+// 오늘의 분위기 (확률 %)
+const MOODS = [['stock',40,'주식장'],['realty',25,'부동산장'],['mixed',25,'혼조'],['crash',10,'블랙먼데이']];
+
+// 1분 장 도중 터지는 속보
+const BREAKING = [
+  {h:'{n}, 대규모 공급 계약 체결', e:.5},
+  {h:'{n}, 분기 실적 어닝 서프라이즈', e:.4},
+  {h:'기관 투자자 {n} 대량 매수 유입', e:.3},
+  {h:'{n} 공장 화재 발생', e:-.5},
+  {h:'검찰, {n} 본사 압수수색', e:-.55},
+  {h:'외국인 {n} 대량 매도 출회', e:-.3},
+];
+
+/* ---------- 5. 랜덤 (씨앗이 같으면 결과도 같음) ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function dayRng(salt){return mulberry32(S.seed*9973 + S.day*7919 + salt)}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ---------- 6. 숫자 보기 좋게 ---------- */
+function won(n, sign){
+  const neg=n<0; n=Math.abs(Math.round(n)); let s;
+  if(n>=1e8){const e=Math.floor(n/1e8), m=Math.round((n%1e8)/1e4); s=e+'억'+(m?' '+m.toLocaleString()+'만':'');}
+  else if(n>=1e4){s=Math.round(n/1e4).toLocaleString()+'만';}
+  else s=n.toLocaleString();
+  return (neg?'-':(sign&&n>0?'+':''))+s+'원';
+}
+const pct=(x,d=1)=>(x>=0?'+':'')+(x*100).toFixed(d)+'%';
+const cls=(x)=>x>0.00001?'up':(x<-0.00001?'down':'');
+
+/* ---------- 7. 효과음 ---------- */
+let AC=null;
+function beep(f=660,d=.07,type='square',vol=.05){
+  try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain(); o.type=type;o.frequency.value=f;
+    g.gain.value=vol; o.connect(g);g.connect(AC.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d); o.stop(AC.currentTime+d+.02);
+  }catch(e){}
+}
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+
+/* ---------- 8. 게임 상태 ---------- */
+let S=null, T=null;
+const lv=()=>({seoul:1,metro:1,local:1});
+function newRun(){
+  S = { seed:Math.floor(Math.random()*1e6), day:1, cash:START_MONEY, base:0.004, savePct:30,
+        prices:Object.fromEntries(STOCKS.map(s=>[s.k,s.base])), picks:[], today:null,
+        reUnlocked:false, props:[], listings:[], visits:2, ltvSel:{}, hints:true, history:[], unlockDay:0, investPct:50, watch:[], lotto:[], lottoCost:0, jobPay:0, action:null,
+        rentLv:lv(), rentTypeLv:{villa:1,apt:1,shop:1} };
+}
+// 금리: 하나의 기준금리에 적금·대출이 같이 묶여 있다
+const saveRate=()=>S.base;
+const loanRate=()=>S.base+LOAN_SPREAD;
+// 부동산 계산
+const mktRent=p=>p.value*REG[p.r].yieldT[p.t]*(1+.2*p.loc)*featRent(p.feat)*S.rentLv[p.r]*S.rentTypeLv[p.t];
+function findP(p,mult){ // 오늘 저녁 세입자를 구할 확률
+  const v=TYPES[p.t].vac+featVac(p.feat)-(p.t==='shop'?p.cat.commerce*.06:0)+(mult-1)*1.5;
+  return 1-clamp(v,0,.95); }
+function sellP(p,mult){ // 오늘 저녁 팔릴 확률
+  const f=mult<1?2.0:(mult>1?.55:1);
+  return clamp(REG[p.r].liq[p.t]*(1+.5*p.cat.station)*featLiq(p.feat)*f,.02,.95); }
+const reEquity=()=>S.props.reduce((a,p)=>a+p.value-p.loan,0);
+const netWorth=()=>S.cash+reEquity();
+
+function loadBest(){try{return JSON.parse(localStorage.getItem('mt_best')||'null')}catch(e){return null}}
+function saveBest(days,money){try{const b=loadBest(); if(!b||days<b.days||(days===b.days&&money>b.money)) localStorage.setItem('mt_best',JSON.stringify({days,money}))}catch(e){}}
+
+const app=document.getElementById('app');
+function hud(){return `<div class="hud"><span class="px">DAY <b>${S.day}</b>/${DAYS}</span><span>순자산 <b>${won(netWorth())}</b></span></div>`}
+function pickW(r,arr){let t=arr.reduce((a,x)=>a+x[1],0)*r(); for(const [k,w] of arr){if(t<w)return k; t-=w;} return arr[0][0];}
+// 그림이 계속 움직이게: 캔버스가 화면에서 사라지면 자동으로 멈춤
+function animate(canvas,draw){const ctx=canvas.getContext('2d'); ctx.imageSmoothingEnabled=false; const t0=performance.now();
+  (function f(now){ if(!canvas.isConnected) return; draw(ctx,(now-t0)/1000); requestAnimationFrame(f); })(t0);}
+
+/* =========================================================
+   9. 도트 장면 (사무실 + 주인공)
+   ========================================================= */
+const SPR = {
+ normal:['....HHHH....','...HHHHHH...','...HSSSSH...','...SESSES...','...SSSSSS...','....SMMS....','.....SS.....',
+  '..BBBWTBBB..','.BBBBWTBBBB.','.BBBBWTBBBB.','.SBBBBBBBBS.','.SBBBBBBBBS.','...BBBBBB...','...BB..BB...','...BB..BB...','...KK..KK...'],
+ happy:['....HHHH....','...HHHHHH...','.S.HSSSSH.S.','.S.SESSES.S.','.B.SSSSSS.B.','.B..MMMM..B.','.BB..SS..BB.',
+  '..BBBWTBBB..','...BBWTBB...','...BBWTBB...','...BBBBBB...','...BBBBBB...','...BBBBBB...','...BB..BB...','...BB..BB...','...KK..KK...'],
+ sad:['............','....HHHH....','...HHHHHH...','...HHSSHH...','...SSSSSS...','..DSESSESD..','....SMMS....','.....SS.....',
+  '..BBBWTBBB..','.BBBBWTBBBB.','.SBBBBBBBBS.','.SBBBBBBBBS.','...BBBBBB...','...BB..BB...','...BB..BB...','...KK..KK...'],
+};
+const PAL={H:'#2b1d14',S:'#f2c29b',E:'#1a1a1a',M:'#b5484b',W:'#f4f4f4',T:'#d7263d',B:'#2f3e74',K:'#141414',D:'#6fc3ff'};
+function drawSprite(ctx,rows,x,y,s,blink){
+  rows.forEach((row,r)=>{for(let c=0;c<row.length;c++){let ch=row[c]; if(ch==='.')continue; if(blink&&ch==='E')ch='S';
+    ctx.fillStyle=PAL[ch]; ctx.fillRect(x+c*s,y+r*s,s,s);}});
+}
+let sceneToken=0;
+function startScene(canvas, time, mood){
+  const ctx=canvas.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  const W=canvas.width,H=canvas.height, my=++sceneToken, t0=performance.now();
+  const br=mulberry32(42); const blds=[]; let bx=9; while(bx<71){const w=5+Math.floor(br()*6),h=8+Math.floor(br()*20); blds.push({x:bx,w,h,lit:[...Array(12)].map(()=>br()<.45)}); bx+=w+1;}
+  const skies={morning:['#8fd0ff','#a9dcff','#c7e9ff','#ffe9b0'], evening:['#3b2a63','#7a3b78','#c4527a','#ff8c5a','#ffc36b'], night:['#0f0d2e','#17154a','#221e5e','#2e2873'], storm:['#2b2d3a','#3a3d4d','#4a4e60','#5a5f72']};
+  function frame(now){
+    if(my!==sceneToken||!canvas.isConnected) return;
+    const t=(now-t0)/1000;
+    ctx.fillStyle=time==='morning'?'#5a4a6e':'#3a3150'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(0,0,0,.15)'; for(let x=0;x<W;x+=8) ctx.fillRect(x,0,1,58);
+    const sk=skies[time]; const wy=6,wh=42; sk.forEach((c,i)=>{ctx.fillStyle=c; ctx.fillRect(8,wy+Math.floor(i*wh/sk.length),64,Math.ceil(wh/sk.length)+1);});
+    if(time==='night'){ctx.fillStyle='#fff'; for(let i=0;i<14;i++){ if(((i*7+Math.floor(t*2))%9)<7) ctx.fillRect(10+(i*29)%60, 8+(i*13)%22,1,1);} }
+    if(time==='morning'){ctx.fillStyle='#fff3a0'; ctx.fillRect(54,10,10,10); ctx.fillStyle='#ffe066'; ctx.fillRect(55,11,8,8);}
+    if(time==='evening'){ctx.fillStyle='#ffb347'; ctx.fillRect(18,34,14,7); ctx.fillStyle='#ffd27a'; ctx.fillRect(20,32,10,2);}
+    blds.forEach(b=>{ctx.fillStyle=time==='morning'?'#6f88a8':'#221c3a'; ctx.fillRect(b.x,wy+wh-b.h,b.w,b.h);
+      if(time!=='morning'){ctx.fillStyle='#ffd166'; let k=0; for(let yy=wy+wh-b.h+2;yy<wy+wh-2;yy+=3)for(let xx=b.x+1;xx<b.x+b.w-1;xx+=2){if(b.lit[k++%12])ctx.fillRect(xx,yy,1,1);} }});
+    if(time==='storm'){ctx.fillStyle='#9fb3d1'; for(let i=0;i<20;i++){const x=9+(i*17)%62,y=wy+((t*60+i*11)%wh); ctx.fillRect(x,y,1,3);} if((t%4)<.12){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(8,wy,64,wh);} }
+    ctx.fillStyle='#20192e'; ctx.fillRect(6,4,68,2);ctx.fillRect(6,48,68,3);ctx.fillRect(6,4,2,46);ctx.fillRect(72,4,2,46);ctx.fillRect(39,4,2,46);
+    ctx.fillStyle='#20192e'; ctx.fillRect(126,10,28,22); ctx.fillStyle='#f3e8cf'; ctx.fillRect(128,12,24,18);
+    ctx.fillStyle='#d7263d'; [[130,26],[133,25],[136,23],[139,24],[142,20],[145,18],[148,15]].forEach(([x,y])=>ctx.fillRect(x,y,3,2));
+    ctx.fillStyle='#7a4f2e'; ctx.fillRect(140,48,10,10); ctx.fillStyle='#3f9a5c'; ctx.fillRect(138,38,4,10);ctx.fillRect(144,34,3,14);ctx.fillRect(148,40,4,8);
+    let rows=SPR[mood]||SPR.normal, oy=0;
+    if(mood==='happy') oy=-Math.round(Math.abs(Math.sin(t*6))*4); else if(mood==='normal') oy=Math.round(Math.sin(t*2)*1);
+    drawSprite(ctx,rows,64,24+oy,2,(t%3.2)<.15);
+    ctx.fillStyle='#a06d43'; ctx.fillRect(0,56,W,3); ctx.fillStyle='#7a4f2e'; ctx.fillRect(0,59,W,H-59);
+    ctx.fillStyle='#5e3b22'; for(let x=4;x<W;x+=26) ctx.fillRect(x,63,18,1);
+    ctx.fillStyle='#1b1b25'; ctx.fillRect(98,34,34,22); ctx.fillRect(112,56,6,2);
+    ctx.fillStyle='#0e2a1f'; ctx.fillRect(100,36,30,17);
+    for(let i=0;i<28;i++){const y=44+Math.round(Math.sin((i+t*8)/3)*3+Math.sin((i+t*5)/7)*2); ctx.fillStyle=i%2?'#ff5a5f':'#5ad19a'; ctx.fillRect(101+i,y,1,1);}
+    ctx.fillStyle='#f4f4f4'; ctx.fillRect(86,50,6,6); ctx.fillRect(92,52,2,2);
+    if(time==='morning'||time==='storm'){ctx.fillStyle='#f3e8cf'; ctx.fillRect(28,52,26,6); ctx.fillStyle='#2a2230'; ctx.fillRect(30,53,10,1);ctx.fillRect(30,55,20,1);}
+    if(mood==='happy'){for(let i=0;i<12;i++){const x=(i*41+20)%W, y=((t*40+i*23)%80)-10; ctx.fillStyle='#ffd166'; ctx.fillRect(x,y,3,3); ctx.fillStyle='#fff3a0'; ctx.fillRect(x,y,1,1);}}
+    if(mood==='sad'){ctx.fillStyle='#5b5770'; ctx.fillRect(60,2,32,6);ctx.fillRect(64,0,22,3); ctx.fillStyle='#6fc3ff';
+      for(let i=0;i<8;i++){const x=62+i*4, y=9+((t*30+i*7)%16); ctx.fillRect(x,y,1,3);} }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   10. 타이틀
+   ========================================================= */
+function screenTitle(){
+  const best=loadBest();
+  app.innerHTML=`
+    <div class="title-logo"><div class="en px">MORNING TRADER</div><div class="ko dh">모닝 트레이더</div></div>
+    <canvas id="sc" class="pix" width="160" height="80"></canvas>
+    <div class="box rules"><ul style="margin:0;padding-left:18px">
+      <li>매일 아침 <b>뉴스 5개</b>를 읽고, 오늘 <b>한 가지</b>만 골라요</li>
+      <li>📈 <b>주식장</b>: 2종목을 골라 1분 동안 사고팔기</li>
+      <li>🏠 <b>임장</b>: 동네와 집 안을 보고 집 사기 (순자산 3,000만 또는 DAY 7부터)</li>
+      <li>🧾 <b>편의점 알바</b>: 30초 계산 알바로 일당 30~100만 원</li>
+      <li>안 쓴 현금은 자동으로 <b>적금</b>, 🎟 복권은 하루 2장까지</li>
+      <li><b>30일 안에 순자산 1억</b> 만들기</li>
+    </ul></div>
+    ${best?`<div class="small">내 최고 기록: DAY ${best.days} 만에 ${won(best.money)}</div>`:''}
+    <button class="btn" id="go">게임 시작</button>`;
+  startScene(document.getElementById('sc'),'night','normal');
+  document.getElementById('go').onclick=()=>{beep(880);newRun();startDay();};
+}
+
+/* =========================================================
+   11. 아침: 오늘의 분위기 → 뉴스 5개 뽑기
+   ========================================================= */
+// 뉴스 하나가 무엇을 어느 방향으로 움직이는지 한 줄로 펼치기
+function keysOf(n){const o={}; for(const k in (n.e||{}))o['s'+k]=n.e[k]; for(const k in (n.re||{}))o['r'+k]=n.re[k]; for(const k in (n.rent||{}))o['n'+k]=n.rent[k];
+  for(const k in (n.reType||{}))o['t'+k]=n.reType[k]; for(const k in (n.rentType||{}))o['u'+k]=n.rentType[k];
+  if(n.mkt){o.mkt=n.mkt; STOCKS.forEach(x=>{if(o['s'+x.k]===undefined)o['s'+x.k]=n.mkt;});} if(n.reAll)o.reAll=n.reAll; if(n.rate)o.rate=n.rate; return o;}
+// 같은 대상에 정반대 큰 뉴스가 겹치면 헷갈리니까 피하기
+function conflicts(a,b){const A=keysOf(a),B=keysOf(b); return Object.keys(A).some(k=>B[k]!==undefined&&Math.sign(A[k])!==Math.sign(B[k])&&Math.abs(A[k])>.2&&Math.abs(B[k])>.2);}
+function startDay(){
+  const r=dayRng(1);
+  S.action=null; S.lotto=[]; S.lottoCost=0; S.jobPay=0;
+  S.netStart=netWorth();
+  // ① 오늘의 분위기 정하기 (첫날은 블랙먼데이 없음)
+  let roll=r()*100, mood='mixed';
+  for(const [m,w] of MOODS){ if(roll<w){mood=m;break;} roll-=w; }
+  if(S.day===1&&mood==='crash') mood='stock';
+  // ② 분위기에 맞게 뉴스 고르기
+  const picked=[]; let rumors=0;
+  const add=(pool,n)=>{ for(const x of shuffle(pool,r)){ if(n<=0||picked.length>=5)break;
+      if(picked.includes(x)) continue; if(x.rumor&&rumors>=1) continue; if(picked.some(p=>conflicts(p,x))) continue;
+      if(x.rumor) rumors++; picked.push(x); n--; } };
+  const strong=STOCK_NEWS.filter(n=>Object.values(n.e||{}).some(v=>Math.abs(v)>=.4));
+  const any=STOCK_NEWS.concat(REALTY_NEWS);
+  if(mood==='crash'){ add(CRASH_NEWS,1); add(STOCK_NEWS,2); add(any,2); }
+  else if(mood==='realty'){ add(REALTY_NEWS,3); add(any,2); }
+  else if(mood==='stock'){ add(strong,3); add(any,2); }
+  add(any,5); // 모자라면 채우기
+  // ③ 영향 합치기
+  const eff=Object.fromEntries(STOCKS.map(s=>[s.k,(r()-.5)*.08]));
+  const z=()=>({seoul:0,metro:0,local:0}), zt=()=>({villa:0,apt:0,shop:0});
+  const reEff=z(), rentEff=z(), reTypeEff=zt(), rentTypeEff=zt();
+  let rateD=0;
+  const items=shuffle(picked,r).map(n=>{
+    const real=n.rumor? r()<.5 : true, m=real?1:-.4;   // 찌라시가 거짓이면 반대로 조금 움직임
+    for(const k in (n.e||{})) eff[k]+=n.e[k]*m;
+    if(n.mkt) for(const k in eff) eff[k]+=n.mkt*m;
+    for(const k in (n.re||{})) reEff[k]+=n.re[k]*m;
+    if(n.reAll) for(const k in reEff) reEff[k]+=n.reAll*m;
+    for(const k in (n.rent||{})) rentEff[k]+=n.rent[k]*m;
+    for(const k in (n.reType||{})) reTypeEff[k]+=n.reType[k]*m;
+    for(const k in (n.rentType||{})) rentTypeEff[k]+=n.rentType[k]*m;
+    if(n.rate) rateD+=n.rate;
+    return {...n, real};
+  });
+  S.prevBase=S.base;
+  S.base=clamp(S.base+rateD/100,0.001,0.01);   // 기준금리가 바뀌면 적금·대출 금리가 같이 바뀜
+  S.today={items,eff,reEff,rentEff,reTypeEff,rentTypeEff,mood};
+  // 부동산 중개소: 순자산 3,000만 원이 넘으면 열림. 매일 매물 4개, 임장 2번
+  if(!S.reUnlocked&&(netWorth()>=UNLOCK_RE||S.day>=UNLOCK_DAY)){S.reUnlocked=true;S.unlockDay=S.day;S.reJust=netWorth()>=UNLOCK_RE?'money':'day';}
+  if(S.reUnlocked){ // 후보 12개 중, 지금 현금으로 살 수 있는 매물이 최소 2개는 끼도록 4개 고르기
+    const lr=dayRng(5), cand=[...Array(12)].map((_,i)=>genListing(lr,i)), can=c=>c.ask*(.3+RE_TAX)<=S.cash;
+    const pick=cand.filter(can).slice(0,2);
+    if(pick.length<2) pick.push(genListing(lr,99,{r:'local',t:'villa',sz:'s'})); // 돈이 적어도 하나는 살 수 있게
+    for(const c of cand){ if(pick.length>=4)break; if(!pick.includes(c)) pick.push(c); }
+    S.listings=shuffle(pick,lr).map((L,i)=>({...L,id:`D${S.day}-${i}`})); S.visits=2;}
+  screenNews();
+}
+
+function chipsOf(n){
+  const m=n.real?1:-.4, out=[];
+  const c=(label,v)=>{ if(Math.abs(v)>=.12) out.push(`<span class="chip ${v>0?'u':'d'}">${label} ${v>0?'▲':'▼'}</span>`); };
+  for(const k in (n.e||{})) c(SEC_NAME[k], n.e[k]*m);
+  if(n.mkt) c('주식시장 전체', n.mkt*m);
+  for(const k in (n.re||{})) c(REG[k].name+' 집값', n.re[k]*m);
+  if(n.reAll) c('전국 집값', n.reAll*m);
+  for(const k in (n.reType||{})) c(TYPES[k].name+' 값', n.reType[k]*m);
+  for(const k in (n.rent||{})) c(REG[k].name+' 월세', n.rent[k]*m);
+  for(const k in (n.rentType||{})) c(TYPES[k].name+' 월세', n.rentType[k]*m);
+  if(n.rate) out.push(`<span class="chip">금리 ${n.rate>0?'▲':'▼'}</span>`);
+  if(n.rumor) out.push(`<span class="chip" style="background:${n.real?'#d8f5e4':'#ffe0a0'}">${n.real?'찌라시 → 사실!':'찌라시 → 거짓!'}</span>`);
+  return '<div>'+out.join('')+'</div>';
+}
+function newsHTML(items,reveal){
+  return items.map(n=>`<div class="news"><span class="src ${n.rumor?'rumor':''}">${n.src}</span><h3>${n.h}</h3>${reveal?chipsOf(n):`<p>${n.b}</p>`}</div>`).join('');
+}
+function screenNews(){
+  const crash=S.today.mood==='crash';
+  app.innerHTML=`${hud()}
+    <canvas id="sc" class="pix" width="160" height="80"></canvas>
+    <div class="paper">
+      <div class="mast"><span class="name">모닝 경제</span><span class="date px">DAY ${S.day}</span></div>
+      ${newsHTML(S.today.items,false)}
+    </div>
+    <button class="btn" id="next">오늘 뭐 할지 정하기 →</button>`;
+  startScene(document.getElementById('sc'),crash?'storm':'morning','normal');
+  document.getElementById('next').onclick=()=>{beep(880); screenHub();};
+}
+function showNewsSheet(){
+  const d=document.createElement('div'); d.className='sheet';
+  d.innerHTML=`<div class="paper"><div class="mast"><span class="name">오늘의 뉴스</span><span class="date">탭해서 닫기</span></div>${newsHTML(S.today.items,false)}</div>`;
+  d.onclick=()=>d.remove(); document.body.appendChild(d);
+}
+
+/* =========================================================
+   12. 부동산
+   12-1. 매물 만들기
+   ========================================================= */
+function genListing(rng,n,force){
+  let r=pickW(rng,[['seoul',30],['metro',40],['local',30]]);
+  let t=pickW(rng,[['villa',35],['apt',45],['shop',20]]);
+  let sz=pickW(rng,[['s',40],['m',40],['l',20]]);
+  if(force){r=force.r;t=force.t;sz=force.sz;}
+  const R=REG[r];
+  // 지도 위 시설 배치 (절반은 생활권 안쪽에 오도록)
+  const fac=[];
+  CATS.forEach((c,ci)=>{const [a,b]=R.cnt[ci], k=a+Math.floor(rng()*(b-a+1));
+    for(let i=0;i<k;i++){ let x,y,tries=0;
+      do{ if(rng()<.55){const ang=rng()*Math.PI*2, d=10+rng()*(MAP_R-4); x=80+Math.cos(ang)*d; y=55+Math.sin(ang)*d;}
+          else {x=10+rng()*140; y=10+rng()*90;}
+          tries++; } while(tries<20 && (Math.hypot(x-80,y-55)<10 || fac.some(f=>Math.hypot(f.x-x,f.y-y)<14)));
+      fac.push({c,x:Math.round(x),y:Math.round(y)}); }});
+  // 입지 점수: 생활권 안에 있는 시설만, 가까울수록 큰 점수
+  const cat=Object.fromEntries(CATS.map(c=>[c,0]));
+  fac.forEach(f=>{const d=Math.hypot(f.x-80,f.y-55); if(d<MAP_R) cat[f.c]=Math.min(1.5,cat[f.c]+(1-d/MAP_R));});
+  const loc=clamp(CATS.reduce((a,c)=>a+LOC_W[t][c]*cat[c],0),-.8,1.2);
+  // 집 안 (보여주기만 하고 글자로는 안 알려줌)
+  const feat={sun:rng()<.45, view:rng()<.22, remodel:rng()<.35};
+  feat.leak =rng()<(feat.remodel?.08:.25);
+  feat.mold =rng()<(feat.remodel?.08:(feat.sun?.15:.35));
+  feat.crack=rng()<.2;
+  feat.pipe =rng()<(feat.remodel?.05:.25);
+  const base=R.base*TYPES[t].k*SIZES[sz].k;          // 이 지역·유형·크기의 보통 가격
+  const fair=base*(1+.3*loc);                         // 입지를 반영한 적정가
+  const ask=Math.round(fair*(1+(rng()-.5)*.3)/1e5)*1e5; // 집주인이 부르는 값 (적정가 ±15%, 하자는 모름)
+  return {id:`D${S.day}-${n}`, r, t, sz, fac, cat, loc, feat, base, fair, ask, seed:Math.floor(rng()*1e9), visited:false};
+}
+
+/* ---------- 12-2. 도트 지도 ---------- */
+function drawIcon(ctx,c,x,y,t){
+  const X=x-4,Y=y-4;
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.fillRect(X-1,Y+9,11,1);
+  if(c==='station'){ // 파란 전철
+    ctx.fillStyle='#173f8a';ctx.fillRect(X-1,Y,11,9);ctx.fillStyle='#2f6fd0';ctx.fillRect(X,Y+1,9,6);
+    ctx.fillStyle='#e9f3ff';ctx.fillRect(X+1,Y+2,3,2);ctx.fillRect(X+5,Y+2,3,2);
+    ctx.fillStyle='#ffd166';ctx.fillRect(X+1,Y+5,7,1);ctx.fillStyle='#111';ctx.fillRect(X,Y+9,2,1);ctx.fillRect(X+7,Y+9,2,1);}
+  else if(c==='academy'){ // 지붕에 책이 펼쳐진 건물
+    ctx.fillStyle='#a8551a';ctx.fillRect(X,Y+2,9,8);ctx.fillStyle='#f7e7c6';
+    for(let i=0;i<3;i++)for(let j=0;j<2;j++)ctx.fillRect(X+1+i*3,Y+3+j*3,2,2);
+    ctx.fillStyle='#ffffff';ctx.fillRect(X,Y-2,4,3);ctx.fillRect(X+5,Y-2,4,3);ctx.fillStyle='#d7263d';ctx.fillRect(X+4,Y-2,1,4);
+    ctx.fillStyle='#555';ctx.fillRect(X+1,Y-1,2,1);ctx.fillRect(X+6,Y-1,2,1);}
+  else if(c==='commerce'){ // 줄무늬 차양 가게들
+    const cols=['#e63946','#ffb703','#2a9d8f'];ctx.fillStyle='#e3d3ad';ctx.fillRect(X-2,Y+3,13,7);
+    cols.forEach((cc,i)=>{for(let k=0;k<4;k++){ctx.fillStyle=k%2?'#fff':cc;ctx.fillRect(X-2+i*4+k,Y+1,1,3);}
+      ctx.fillStyle='#5a4632';ctx.fillRect(X-1+i*4,Y+6,2,4);ctx.fillStyle='#9fdcff';ctx.fillRect(X+1+i*4,Y+5,1,2);});}
+  else if(c==='culture'){ // 나무와 연못이 있는 공원
+    ctx.fillStyle='#4caf6a';ctx.fillRect(X-1,Y,11,10);ctx.fillRect(X,Y-1,9,12);ctx.fillStyle='#2d7a45';
+    [[0,1],[6,0],[1,6],[7,7]].forEach(([a,b])=>{ctx.fillRect(X+a,Y+b,3,3);});ctx.fillStyle='#6fc3ff';ctx.fillRect(X+3,Y+4,4,2);}
+  else if(c==='nuisance'){ // 굴뚝에서 연기 나는 공장
+    ctx.fillStyle='#55555f';ctx.fillRect(X-1,Y+4,10,6);ctx.fillStyle='#43434b';
+    for(let i=0;i<3;i++){ctx.fillRect(X-1+i*3,Y+3,2,1);ctx.fillRect(X-1+i*3,Y+2,1,1);}
+    ctx.fillStyle='#7a3b2e';ctx.fillRect(X+8,Y-3,2,13);
+    for(let i=0;i<3;i++){const s=(t*.5+i/3)%1;ctx.fillStyle=`rgba(150,150,150,${.85-s*.6})`;ctx.fillRect(X+8+Math.round(s*5),Y-5-Math.round(s*9),2+Math.round(s*3),2+Math.round(s*2));}}
+}
+function startMap(canvas,L){
+  const W=canvas.width,H=canvas.height,R=REG[L.r],rng=mulberry32(L.seed);
+  const ry=[16+Math.floor(rng()*12),72+Math.floor(rng()*14)], rx=[26+Math.floor(rng()*14),112+Math.floor(rng()*18)];
+  const near=(x,y,d)=>Math.hypot(x-80,y-55)<d||L.fac.some(f=>Math.hypot(f.x-x,f.y-y)<d);
+  const blds=[];
+  for(let y=1;y<H-4;y+=7)for(let x=1;x<W-4;x+=7){
+    if(ry.some(v=>y+6>v-3&&y<v+4)||rx.some(v=>x+6>v-3&&x<v+4))continue;
+    if(near(x+3,y+3,9))continue;
+    const q=rng();
+    if(q<R.density) blds.push({x,y,w:4+Math.floor(rng()*3),h:4+Math.floor(rng()*3),c:R.bld[Math.floor(rng()*3)]});
+    else if(q<R.density+.35) blds.push({x,y,tree:true});
+  }
+  const st=L.fac.filter(f=>f.c==='station');
+  animate(canvas,(ctx,t)=>{
+    ctx.fillStyle=R.ground; ctx.fillRect(0,0,W,H);
+    if(L.r==='local'){ctx.fillStyle='#6f9550'; for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,1);}
+    blds.forEach(b=>{ if(b.tree){ctx.fillStyle='#3f8a4c';ctx.fillRect(b.x+1,b.y+1,4,4);ctx.fillStyle='#2f6e3a';ctx.fillRect(b.x+3,b.y+3,2,2);}
+      else {ctx.fillStyle=b.c;ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(b.x,b.y,b.w,1);} });
+    // 도로
+    ctx.fillStyle='#3b3b45'; ry.forEach(v=>ctx.fillRect(0,v-3,W,6)); rx.forEach(v=>ctx.fillRect(v-3,0,6,H));
+    ctx.fillStyle='#d8d49a'; ry.forEach(v=>{for(let x=0;x<W;x+=6)ctx.fillRect(x,v,3,1);}); rx.forEach(v=>{for(let y=0;y<H;y+=6)ctx.fillRect(v,y,1,3);});
+    // 철길 (역이 있으면 역을 지나감)
+    st.forEach(s=>{ctx.fillStyle='#6a5440';for(let x=0;x<W;x+=3)ctx.fillRect(x,s.y+6,1,3);ctx.fillStyle='#b9b9c4';ctx.fillRect(0,s.y+6,W,1);ctx.fillRect(0,s.y+8,W,1);});
+    // 생활권 점선 원
+    ctx.fillStyle='rgba(255,255,255,.75)';
+    for(let a=0;a<360;a+=5){const rad=a*Math.PI/180;ctx.fillRect(Math.round(80+Math.cos(rad)*MAP_R),Math.round(55+Math.sin(rad)*MAP_R),1,1);}
+    // 시설
+    if(S.hints) L.fac.forEach(f=>{const d=Math.hypot(f.x-80,f.y-55); if(d>=MAP_R) return; const v=LOC_W[L.t][f.c]*(1-d/MAP_R);
+      ctx.fillStyle=v>.06?'#5ad19a':(v<0?'#ff5a5f':'#d0d0d0'); const n=Math.ceil(d/2);   // 초록=좋음, 빨강=나쁨, 회색=이 집엔 별로
+      for(let k=1;k<n;k+=2) ctx.fillRect(Math.round(80+(f.x-80)*k/n),Math.round(55+(f.y-55)*k/n),2,2); });
+    L.fac.forEach(f=>{ctx.globalAlpha=(S.hints&&Math.hypot(f.x-80,f.y-55)>=MAP_R)?.35:1;   // 생활권 밖은 흐리게
+      ctx.fillStyle=R.ground;ctx.fillRect(f.x-6,f.y-6,13,15);drawIcon(ctx,f.c,f.x,f.y,t);ctx.globalAlpha=1;});
+    // 우리 집 + 핀
+    ctx.fillStyle='#f3e8cf';ctx.fillRect(76,54,9,6);ctx.fillStyle='#d7263d';ctx.fillRect(75,53,11,1);ctx.fillRect(76,52,9,1);ctx.fillRect(78,51,5,1);ctx.fillRect(79,50,3,1);
+    ctx.fillStyle='#5a3a22';ctx.fillRect(79,57,2,3);ctx.fillStyle='#9fdcff';ctx.fillRect(82,55,2,2);
+    const by=Math.round(Math.abs(Math.sin(t*3))*3);
+    ctx.fillStyle='#ffd166';ctx.fillRect(78,40-by,5,5);ctx.fillRect(79,45-by,3,2);ctx.fillRect(80,47-by,1,1);ctx.fillStyle='#2a1d05';ctx.fillRect(80,42-by,1,1);
+  });
+}
+function legendHTML(){
+  return `<div class="legend">${CATS.map(c=>`<span><canvas class="ico" width="16" height="16" data-ico="${c}"></canvas>${CAT_NAME[c]}</span>`).join('')}</div>`;
+}
+function drawLegend(){document.querySelectorAll('canvas[data-ico]').forEach(cv=>{const c=cv.dataset.ico; animate(cv,(ctx,t)=>{ctx.clearRect(0,0,16,16);drawIcon(ctx,c,8,8,t);});});}
+
+/* ---------- 12-3. 집 안 (글자 없이 그림만) ---------- */
+function startInterior(canvas,L){
+  const W=canvas.width,H=canvas.height,f=L.feat,rng=mulberry32(L.seed+7);
+  const inset={s:24,m:12,l:2}[L.sz], shop=L.t==='shop', FL=70;
+  const wall=f.remodel?'#efe9de':'#cbb878', wall2=f.remodel?'#d9d2c4':'#ab9a5e';
+  const moldPts=[...Array(26)].map(()=>[Math.floor(rng()*12),Math.floor(rng()*12)]);
+  const crack=[]; {let x=inset+18+Math.floor(rng()*10),y=14; while(y<50){crack.push([x,y]); y++; if(rng()<.5)x+=rng()<.5?-1:1;}}
+  const win= shop? {x:inset+8,y:14,w:W-2*inset-16,h:40}
+                 : f.sun? {x:58,y:13,w:54,h:40} : {x:70,y:18,w:30,h:24};
+  animate(canvas,(ctx,t)=>{
+    // 천장·벽·바닥
+    ctx.fillStyle=f.remodel?'#f7f4ee':'#b9ab83'; ctx.fillRect(0,0,W,9);
+    ctx.fillStyle=wall; ctx.fillRect(0,9,W,FL-9);
+    if(!f.remodel){ctx.fillStyle='#b8a565'; for(let x=0;x<W;x+=6)ctx.fillRect(x,9,1,FL-9); ctx.fillStyle='#9a8a50'; for(let x=3;x<W;x+=12)for(let y=14;y<FL;y+=10)ctx.fillRect(x,y,1,1);}
+    if(shop){ ctx.fillStyle=f.remodel?'#e8e8ec':'#9a9a90'; ctx.fillRect(0,FL,W,H-FL);
+      ctx.fillStyle=f.remodel?'#d0d0d8':'#85857a'; for(let x=0;x<W;x+=10)for(let y=FL;y<H;y+=10)ctx.fillRect(x+((y/10)%2?5:0),y,5,5); }
+    else { ctx.fillStyle=f.remodel?'#c99a63':'#7d5e40'; ctx.fillRect(0,FL,W,H-FL);
+      ctx.fillStyle=f.remodel?'#b5874f':'#6a4e34'; for(let y=FL+5;y<H;y+=6)ctx.fillRect(0,y,W,1);
+      if(f.remodel){for(let y=FL;y<H;y+=6)for(let x=(y%12?8:20);x<W;x+=24)ctx.fillRect(x,y,1,6);} else {ctx.fillStyle='#5c442d';for(let i=0;i<6;i++)ctx.fillRect((i*37)%W,FL+8+(i*11)%22,4,2);} }
+    ctx.fillStyle=f.remodel?'#ffffff':'#8a7a4e'; ctx.fillRect(0,FL-2,W,2); // 걸레받이
+    // 창문 (남향이면 크고 밝음, 전망이 좋으면 강·공원이 보임)
+    const w=win;
+    ctx.fillStyle=f.sun?'#9fdcff':'#8d98aa'; ctx.fillRect(w.x,w.y,w.w,w.h);
+    if(f.sun){ctx.fillStyle='#fff3a0';ctx.fillRect(w.x+w.w-12,w.y+3,8,8);ctx.fillStyle='#ffe066';ctx.fillRect(w.x+w.w-11,w.y+4,6,6);}
+    else {ctx.fillStyle='#a9b2c0';ctx.fillRect(w.x+4,w.y+5,12,3);ctx.fillRect(w.x+8,w.y+3,8,2);}
+    if(f.view){ctx.fillStyle='#3f8a4c';ctx.fillRect(w.x,w.y+w.h-11,w.w,4);ctx.fillStyle='#4a90d0';ctx.fillRect(w.x,w.y+w.h-7,w.w,7);
+      ctx.fillStyle='#9fd0f0';for(let x=w.x+2;x<w.x+w.w;x+=7)ctx.fillRect(x+Math.round(Math.sin(t*2+x)*1),w.y+w.h-4,3,1);}
+    else {ctx.fillStyle=f.sun?'#7f8fa6':'#5e6675'; for(let x=w.x;x<w.x+w.w;x+=9){const hh=10+((x*7)%9);ctx.fillRect(x,w.y+w.h-hh,7,hh);}
+      ctx.fillStyle=f.sun?'#c8d6e6':'#7b8494'; for(let x=w.x+1;x<w.x+w.w;x+=9)for(let y=w.y+w.h-8;y<w.y+w.h;y+=3)ctx.fillRect(x+1,y,1,1);}
+    ctx.fillStyle=f.remodel?'#ffffff':'#c9c2a8'; ctx.fillRect(w.x-2,w.y-2,w.w+4,2);ctx.fillRect(w.x-2,w.y+w.h,w.w+4,2);ctx.fillRect(w.x-2,w.y,2,w.h);ctx.fillRect(w.x+w.w,w.y,2,w.h);
+    ctx.fillRect(w.x+Math.floor(w.w/2)-1,w.y,2,w.h); if(!shop&&f.sun)ctx.fillRect(w.x,w.y+Math.floor(w.h/2),w.w,1);
+    // 햇살
+    if(f.sun){ctx.fillStyle=`rgba(255,236,150,${.22+Math.sin(t*1.5)*.04})`;
+      for(let i=0;i<H-w.y-w.h;i++){const yy=w.y+w.h+i; if(yy<FL)continue; ctx.fillRect(w.x-8+Math.round(i*.9),yy,w.w-6,1);} }
+    // 조명
+    if(f.remodel){ctx.fillStyle='#333';ctx.fillRect(W/2-1,0,1,8);ctx.fillStyle='#e0b25a';ctx.fillRect(W/2-5,8,10,3);ctx.fillStyle='rgba(255,220,140,.25)';ctx.fillRect(W/2-8,11,16,2);}
+    else {const fl=(Math.floor(t*7)%23===0)?'#9aa':'#eef';ctx.fillStyle='#777';ctx.fillRect(W/2-14,7,28,1);ctx.fillStyle=fl;ctx.fillRect(W/2-13,8,26,2);}
+    // 가구
+    if(shop){ // 진열대 + 계산대
+      ctx.fillStyle=f.remodel?'#ffffff':'#7d5e40'; ctx.fillRect(inset+4,FL-24,22,24); ctx.fillStyle=f.remodel?'#cfcfd6':'#5c442d'; for(let y=FL-22;y<FL;y+=7)ctx.fillRect(inset+4,y,22,1);
+      const items=['#e63946','#ffb703','#2a9d8f','#6fc3ff']; for(let y=FL-21;y<FL-2;y+=7)for(let x=inset+6;x<inset+24;x+=4){ctx.fillStyle=items[(x+y)%4];ctx.fillRect(x,y,2,4);}
+      ctx.fillStyle=f.remodel?'#3a3260':'#6a4e34'; ctx.fillRect(W-inset-34,FL+4,30,14); ctx.fillStyle=f.remodel?'#5a4f90':'#86664a'; ctx.fillRect(W-inset-34,FL+4,30,3);
+    } else {
+      ctx.fillStyle=f.remodel?'#5b6fa8':'#7a5040'; ctx.fillRect(inset+6,FL-4,34,14); ctx.fillRect(inset+6,FL-12,34,8);
+      ctx.fillStyle=f.remodel?'#7186c2':'#8f6250'; ctx.fillRect(inset+8,FL-10,14,6);ctx.fillRect(inset+24,FL-10,14,6);
+      if(!f.remodel){ctx.fillStyle='#a6806a';ctx.fillRect(inset+12,FL-8,4,3);}
+      ctx.fillStyle=f.remodel?'#d9c2a0':'#5c442d'; ctx.fillRect(inset+48,FL+12,24,3); ctx.fillRect(inset+50,FL+15,2,6);ctx.fillRect(inset+68,FL+15,2,6);
+      if(f.remodel){ctx.fillStyle='#8a5a3a';ctx.fillRect(W-inset-16,FL+6,7,8);ctx.fillStyle='#3f9a5c';ctx.fillRect(W-inset-18,FL-6,4,12);ctx.fillRect(W-inset-13,FL-10,3,16);ctx.fillRect(W-inset-9,FL-4,4,10);}
+      if(L.sz==='l'){ctx.fillStyle='#4a3a2a';ctx.fillRect(W-inset-44,FL-30,20,30);ctx.fillStyle='#6a5440';for(let y=FL-26;y<FL;y+=8)ctx.fillRect(W-inset-44,y,20,1);
+        const bk=['#d7263d','#2f6fd0','#ffd166','#3f9a5c'];for(let y=FL-25;y<FL-2;y+=8)for(let x=W-inset-42;x<W-inset-26;x+=3){ctx.fillStyle=bk[(x+y)%4];ctx.fillRect(x,y,2,6);}}
+    }
+    // ── 하자 ──
+    if(f.leak){ const sx=W-inset-46;
+      ctx.fillStyle='rgba(120,85,40,.55)'; ctx.fillRect(sx,9,16,5);ctx.fillRect(sx+3,14,10,3);ctx.fillRect(sx+6,17,4,2);
+      ctx.fillStyle='#6c8a3a'; ctx.fillRect(sx+2,FL+14,10,8); ctx.fillStyle='#8aa84a'; ctx.fillRect(sx+2,FL+14,10,2);  // 양동이
+      const dy=(t*40)%(FL+12-18); ctx.fillStyle='#6fc3ff'; ctx.fillRect(sx+7,19+Math.round(dy),1,2);
+      ctx.fillStyle='rgba(111,195,255,.35)'; ctx.fillRect(sx-2,FL+21,18,2); }
+    if(f.mold){ const mx=inset+2, my=10; ctx.fillStyle='#2f3a26';
+      moldPts.forEach(([a,b],i)=>{ctx.fillStyle=i%3?'#3a4a2c':'#1f2a1a';ctx.fillRect(mx+a,my+b,1+(i%2),1);});
+      moldPts.slice(0,14).forEach(([a,b],i)=>{ctx.fillStyle=i%2?'#3a4a2c':'#1f2a1a';ctx.fillRect(mx+a,FL-3-Math.floor(b/2),1,1);}); }
+    if(f.crack){ ctx.fillStyle='#4a3d2a'; crack.forEach(([x,y],i)=>{ctx.fillRect(x,y,1,1); if(i%9===4)ctx.fillRect(x+1,y+1,2,1);}); }
+    if(f.pipe){ const px=W-inset-8; ctx.fillStyle='#9a4f2a'; ctx.fillRect(px,9,3,FL-9); ctx.fillStyle='#6e3519'; for(let y=20;y<FL;y+=18)ctx.fillRect(px-1,y,5,3);
+      ctx.fillStyle='rgba(122,74,42,.6)'; ctx.fillRect(px-2,26,2,14); ctx.fillRect(px+3,44,2,10);
+      const dy=(t*25)%20; ctx.fillStyle='#a86a3a'; ctx.fillRect(px+1,FL-1+Math.round(dy/4),1,1); }
+    // 측면 벽 (작은 집일수록 좁게)
+    for(let x=0;x<inset;x++){const k=x/inset, top=Math.round(9*k), bot=Math.round(FL+(H-FL)*(1-k));
+      ctx.fillStyle=wall2; ctx.fillRect(x,top,1,bot-top); ctx.fillStyle=wall2; ctx.fillRect(W-1-x,top,1,bot-top);}
+    if(inset>0){ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(inset,9,1,FL-9);ctx.fillRect(W-1-inset,9,1,FL-9);}
+    // 남향이 아니면 전체가 어둡게
+    if(!f.sun){ctx.fillStyle='rgba(20,28,60,.22)';ctx.fillRect(0,0,W,H);} else {ctx.fillStyle='rgba(255,220,150,.06)';ctx.fillRect(0,0,W,H);}
+  });
+}
+
+/* ---------- 12-5. 임장 힌트 (알아보기 쉽게) ---------- */
+// 입지 별점: 지도 점수를 별 5개로
+const locStars=loc=>loc<-.2?1:loc<.1?2:loc<.35?3:loc<.65?4:5;
+const starStr=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+// 생활권 안 시설이 "이 유형의 집"에 얼마나 좋은지 (같은 학원가도 아파트엔 ▲▲, 상가엔 ·)
+function locHTML(L){
+  const rows=CATS.filter(c=>L.cat[c]>0).map(c=>{const v=LOC_W[L.t][c]*L.cat[c];
+    const mark=v>.3?'▲▲':v>.08?'▲':v<-.2?'▼▼':v<0?'▼':'·';
+    return `<span class="lb ${v>.08?'g':v<0?'b':''}"><canvas class="ico" width="16" height="16" data-ico="${c}"></canvas>${CAT_NAME[c]} ${mark}</span>`;}).join('');
+  return `<div class="locsum"><span class="lb">입지 <b class="stars">${starStr(locStars(L.loc))}</b></span>${rows||'<span class="small">생활권 안에 시설이 없어요</span>'}</div>`;
+}
+// 집 안 요소: [키, 이름, 영향, 좋음(1)/나쁨(-1)]
+const FEATS=[['sun','남향 햇빛','월세↑ 공실↓',1],['remodel','리모델링','월세↑ 집값↑',1],['view','강·공원 전망','집값↑ 잘 팔림',1],
+             ['leak','누수','공실↑',-1],['mold','곰팡이','월세↓',-1],['crack','벽 균열','집값↓',-1],['pipe','낡은 배관','잘 안 팔림',-1]];
+function drawFeatIcon(ctx,k){
+  ctx.clearRect(0,0,16,16); const P=(c,x,y,w=1,h=1)=>{ctx.fillStyle=c;ctx.fillRect(x,y,w,h);};
+  if(k==='sun'){P('#ffd166',5,5,6,6);P('#fff3a0',6,6,3,3);[[7,1,2,2],[7,13,2,2],[1,7,2,2],[13,7,2,2],[3,3],[12,3],[3,12],[12,12]].forEach(a=>P('#ffd166',a[0],a[1],a[2]||1,a[3]||1));}
+  else if(k==='remodel'){P('#ffffff',7,2,2,12);P('#ffffff',2,7,12,2);P('#ffd166',7,7,2,2);P('#fff3a0',3,3);P('#fff3a0',12,3);P('#fff3a0',3,12);P('#fff3a0',12,12);}
+  else if(k==='view'){P('#3f8a4c',1,5,14,3);P('#4a90d0',1,8,14,6);P('#9fd0f0',2,10,4,1);P('#9fd0f0',9,12,4,1);P('#9fdcff',1,1,14,4);}
+  else if(k==='leak'){P('#6fc3ff',7,2,2,2);P('#6fc3ff',6,4,4,3);P('#6fc3ff',5,7,6,5);P('#3f8fd0',6,12,4,1);P('#e9f6ff',6,8,1,2);}
+  else if(k==='mold'){[[3,3,2,2],[6,2],[9,4,2,2],[4,7],[7,6,2,2],[11,8],[3,10,2,2],[8,10],[12,12,2,2],[6,12]].forEach((a,i)=>P(i%2?'#2f3a26':'#4a5a32',a[0],a[1],a[2]||1,a[3]||1));}
+  else if(k==='crack'){P('#e5d6aa',1,1,14,14);[[8,1],[7,2],[7,3],[8,4],[9,5],[8,6],[7,7],[6,8],[7,9],[8,10],[8,11],[7,12],[6,13],[6,14],[10,6],[11,7]].forEach(a=>P('#4a3d2a',a[0],a[1]));}
+  else if(k==='pipe'){P('#9a4f2a',6,0,4,16);P('#6e3519',5,4,6,2);P('#6e3519',5,10,6,2);P('#7a4a2a',10,6,1,4);P('#a86a3a',11,13,1,2);}
+}
+function featHTML(L){
+  const fs=FEATS.filter(([k])=>L.feat[k]);
+  return `<div class="feats">${fs.length?fs.map(([k,n,e,g])=>`<span class="fb ${g>0?'g':'b'}"><canvas class="ico" width="16" height="16" data-feat="${k}"></canvas><span><b>${n}</b><br>${e}</span></span>`).join('')
+    :'<span class="small">눈에 띄는 장점도 하자도 없어요</span>'}</div>`;
+}
+function drawFeatIcons(){document.querySelectorAll('canvas[data-feat]').forEach(cv=>{const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;drawFeatIcon(ctx,cv.dataset.feat);});}
+function visitSummary(L){const good=FEATS.filter(([k,,,g])=>g>0&&L.feat[k]).length, bad=FEATS.filter(([k,,,g])=>g<0&&L.feat[k]).length;
+  return `입지 <b class="stars">${starStr(locStars(L.loc))}</b> · 장점 <b style="color:var(--ok)">${good}</b> · 하자 <b style="color:var(--up)">${bad}</b>`;}
+
+/* =========================================================
+   17. 종료 화면 리포트: 어디서 벌고 잃었나
+   ========================================================= */
+const CAT_STYLE=[['stock','주식','#ff5a5f'],['job','알바','#ff9f43'],['rent','월세','#ffd166'],['re','집값 변동','#4ea8ff'],['save','적금 이자','#5ad19a'],
+                 ['loan','대출 이자','#a07cf0'],['deal','집 사고판 차익·세금','#c9c2a8'],['lotto','복권','#ff6fb5']];
+function reportHTML(){
+  const tot=Object.fromEntries(CAT_STYLE.map(([k])=>[k,S.history.reduce((a,h)=>a+h[k],0)]));
+  const mx=Math.max(1,...Object.values(tot).map(Math.abs));
+  const rows=CAT_STYLE.slice().sort((a,b)=>Math.abs(tot[b[0]])-Math.abs(tot[a[0]])).map(([k,n,c])=>
+    `<div class="rrow"><span class="sw" style="background:${c}"></span><span class="rn">${n}</span>
+      <span class="rbar"><i style="width:${Math.abs(tot[k])/mx*100}%;background:${c};opacity:${tot[k]<0?.45:1}"></i></span>
+      <b class="${cls(tot[k])}">${won(tot[k],true)}</b></div>`).join('');
+  return `<h3 class="sub">어디서 벌고 잃었나</h3><div class="box">${rows}</div>
+    <h3 class="sub">순자산 흐름</h3><canvas id="nc" class="pix" width="240" height="110"></canvas>
+    <div class="legend"><span><i class="sw" style="background:#fff"></i>순자산</span><span><i class="sw" style="background:#ffd166"></i>목표 1억</span>${S.unlockDay?'<span><i class="sw" style="background:#a07cf0"></i>부동산 오픈</span>':''}</div>
+    <h3 class="sub">하루하루 손익 (항목별)</h3><canvas id="dc" class="pix" width="240" height="110"></canvas>
+    <div class="legend">${CAT_STYLE.map(([k,n,c])=>`<span><i class="sw" style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+}
+function drawReport(){
+  const H=S.history; if(!H.length) return;
+  // ① 순자산 꺾은선
+  let c=document.getElementById('nc'), ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  let W=c.width,Hh=c.height; ctx.fillStyle='#120f24'; ctx.fillRect(0,0,W,Hh);
+  const pts=[START_MONEY,...H.map(h=>h.net)], n=pts.length-1, top=Math.max(GOAL*1.1,...pts)*1.02;
+  const X=i=>Math.round(4+i/Math.max(1,n)*(W-8)), Y=v=>Math.round(Hh-4-(v/top)*(Hh-8));
+  ctx.fillStyle='#2a2550'; for(let v=0;v<top;v+=2e7){const y=Y(v);for(let x=0;x<W;x+=3)ctx.fillRect(x,y,1,1);}
+  ctx.fillStyle='#ffd166'; const gy=Y(GOAL); for(let x=0;x<W;x+=5)ctx.fillRect(x,gy,3,1);
+  if(S.unlockDay){ctx.fillStyle='#a07cf0';const ux=X(S.unlockDay-1);for(let y=0;y<Hh;y+=3)ctx.fillRect(ux,y,1,2);}
+  for(let i=1;i<pts.length;i++){const x0=X(i-1),y0=Y(pts[i-1]),x1=X(i),y1=Y(pts[i]),st=Math.max(Math.abs(x1-x0),Math.abs(y1-y0),1);
+    for(let k=0;k<=st;k++){ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(x0+(x1-x0)*k/st),Math.round(y0+(y1-y0)*k/st),2,2);}}
+  pts.forEach((v,i)=>{ctx.fillStyle=i&&v>=GOAL?'#ffd166':'#5ad19a';ctx.fillRect(X(i)-1,Y(v)-1,4,4);});
+  // ② 하루 손익 막대 (위 = 번 돈, 아래 = 잃은 돈, 색 = 항목)
+  c=document.getElementById('dc'); ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false; W=c.width; Hh=c.height;
+  ctx.fillStyle='#120f24'; ctx.fillRect(0,0,W,Hh);
+  const pos=H.map(h=>CAT_STYLE.reduce((a,[k])=>a+Math.max(0,h[k]),0)), neg=H.map(h=>CAT_STYLE.reduce((a,[k])=>a+Math.min(0,h[k]),0));
+  const mp=Math.max(1,...pos), mn=Math.max(1,...neg.map(Math.abs)), z=Math.round(4+(Hh-8)*mp/(mp+mn)), sc=(Hh-8)/(mp+mn);
+  const bw=Math.max(2,Math.floor((W-8)/H.length)-1);
+  ctx.fillStyle='#6d6790'; ctx.fillRect(0,z,W,1);
+  H.forEach((h,i)=>{const x=4+i*(bw+1); let up=z, dn=z+1;
+    CAT_STYLE.forEach(([k,,col])=>{const v=h[k]; if(!v)return; const hh=Math.max(1,Math.round(Math.abs(v)*sc)); ctx.fillStyle=col;
+      if(v>0){up-=hh;ctx.fillRect(x,up,bw,hh);} else {ctx.fillRect(x,dn,bw,hh);dn+=hh;}});});
+}
+
+/* =========================================================
+   13. 오늘 뭐 할까? (하루에 행동 1개)
+   주식장 / 임장 / 알바 중 하나. 안 쓴 현금은 자동으로 적금.
+   복권·내 자산 관리·뉴스 보기는 행동으로 치지 않음
+   ========================================================= */
+const LOTTO_PRICE=50000, LOTTO_MAX=2;
+const LOTTO_TIERS=[[.0001,60000000,'1등'],[.001,5000000,'2등'],[.01,500000,'3등'],[.05,50000,'4등']]; // [확률, 당첨금, 이름]
+function screenHub(){
+  const lockRe=!S.reUnlocked;
+  const watchN=S.watch.length, propN=S.props.length;
+  app.innerHTML=`${hud()}
+    ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:'Do Hyeon';font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
+    <h2 class="sh">오늘 뭐 할까?</h2>
+    <div class="small" style="text-align:left">하루에 하나만 할 수 있어요. 쓰지 않은 현금 <b style="color:var(--ink)">${won(S.cash)}</b>은 자동으로 적금에 들어가요 (하루 ${(saveRate()*100).toFixed(2)}%).</div>
+    <button class="actc" data-act="stock"><span class="ai">📈</span><span><b>주식장 가기</b><small>2종목을 골라 1분 동안 사고팔기</small></span></button>
+    <button class="actc" data-act="realty" ${lockRe?'disabled':''}><span class="ai">🏠</span><span><b>임장 가기</b>
+      <small>${lockRe?`🔒 순자산 3,000만 원 또는 DAY ${UNLOCK_DAY}에 열려요 (${UNLOCK_DAY-S.day}일 남음)`:'오늘 매물 4개 중 2곳 둘러보고 사기'}</small></span></button>
+    ${lockRe?`<div class="prog" style="margin-top:-6px"><i style="width:${clamp(netWorth()/UNLOCK_RE,0,1)*100}%"></i><span>3,000만까지 ${(clamp(netWorth()/UNLOCK_RE,0,1)*100).toFixed(0)}%</span></div>`:''}
+    <button class="actc" data-act="job"><span class="ai">🧾</span><span><b>편의점 알바</b><small>30초 계산 알바 · 일당 30만~100만 원</small></span></button>
+    <h3 class="sub">행동을 쓰지 않는 것들</h3>
+    <div class="side">
+      <button class="sidec" id="lotto"><b>🎟 복권</b><small>장당 5만 · 오늘 ${S.lotto.length}/${LOTTO_MAX}장</small></button>
+      <button class="sidec" id="assets" ${propN||watchN?'':'disabled'}><b>🏘 내 자산</b><small>집 ${propN}채 · 관심 매물 ${watchN}</small></button>
+      <button class="sidec" id="news"><b>📰 뉴스</b><small>다시 보기</small></button>
+    </div>`;
+  app.querySelectorAll('.actc').forEach(b=>b.onclick=()=>{beep(880); S.reJust=false; const a=b.dataset.act;
+    if(a==='stock') screenPick(); else if(a==='realty') screenListings(); else screenJob();});
+  document.getElementById('lotto').onclick=()=>{
+    if(S.lotto.length>=LOTTO_MAX){beep(200,.08);return;} if(S.cash<LOTTO_PRICE){beep(200,.08);return;}
+    S.cash-=LOTTO_PRICE; S.lottoCost+=LOTTO_PRICE; S.lotto.push({}); beep(1046,.05);beep(1318,.07); screenHub();};
+  document.getElementById('assets').onclick=()=>{beep(660);screenAssets();};
+  document.getElementById('news').onclick=showNewsSheet;
+}
+
+/* ---------- 12-4. 부동산: 임장 하는 날 ---------- */
+function ownedCard(p,i){
+  const eq=p.value-p.loan, mr=mktRent(p), interest=p.loan*loanRate(), chg=p.prevValue?p.value/p.prevValue-1:0;
+  const st=p.tenant
+    ? `<div class="st ok">세입자 있음 · 월세 하루 ${won(p.tenant.rent)} · 계약 ${p.tenant.days}일 남음</div>`
+    : `<div class="st vac">공실 · 오늘 저녁 세입자 구할 확률 ${Math.round(findP(p,p.mult)*100)}%</div>`;
+  const sell=p.sell
+    ? `<div class="st sell">매도 등록 중 · ${won(p.value*p.sell)} · 오늘 저녁 팔릴 확률 ${Math.round(sellP(p,p.sell)*100)}%</div>
+       <div class="act"><span class="need">팔리면 손에 <b>${won(p.value*p.sell*(1-RE_TAX)-p.loan)}</b></span><button class="btn sec sm" data-unsell="${i}">등록 취소</button></div>`
+    : `<div class="lbl">매도 호가</div>
+       <div class="quick">${[[.9,'급매 90%'],[1,'시세 100%'],[1.1,'110%']].map(([m,tx])=>`<button data-sellsel="${i}" data-m="${m}" class="${(p.sellSel??1)===m?'on':''}">${tx}</button>`).join('')}</div>
+       <div class="act"><span class="need">오늘 저녁 팔릴 확률 <b>${Math.round(sellP(p,p.sellSel??1)*100)}%</b></span><button class="btn sec sm" data-sell="${i}">매도 등록</button></div>`;
+  return `<div class="re own">
+    <div class="top"><span class="nm">${propName(p)}</span><span class="${cls(chg)}" style="font-size:13px">어제보다 ${pct(chg)}</span></div>
+    <div class="kv"><span>시세 <b>${won(p.value)}</b></span><span>대출 <b>${won(p.loan)}</b></span>
+      <span>내 지분 <b class="${cls(eq-p.paid)}">${won(eq)}</b></span><span>이자 <b>하루 ${won(interest)}</b></span></div>
+    ${st}
+    <div class="lbl">${p.tenant?'다음 계약 월세':'내가 정한 월세'} (시세 하루 ${won(mr)} 기준)</div>
+    <div class="quick">${[.9,1,1.1,1.2].map(m=>`<button data-rent="${i}" data-m="${m}" class="${p.mult===m?'on':''}">${Math.round(m*100)}%</button>`).join('')}</div>
+    ${sell}
+    <button class="linkbtn" data-look="${i}" style="align-self:flex-start">지도·집 안 다시 보기</button>
+  </div>`;
+}
+function listingCard(L,inWatch){
+  return `<div class="re">
+    <div class="top"><span class="nm">${propName(L)}</span><span class="tag" style="background:${L.visited?'#3f7a5c':'#3a3260'}">${inWatch?`D-${S.watch.find(w=>w.L===L).until-S.day}`:(L.visited?'임장 완료':AREA[L.t][L.sz]+'평')}</span></div>
+    <div class="kv"><span>호가 <b>${won(L.ask)}</b></span><span>보통 시세 <b>${won(L.base)}</b></span>
+      <span>보통 월세 <b>하루 ${(REG[L.r].yieldT[L.t]*100).toFixed(2)}%</b></span><span>팔리는 속도 <b>${'●'.repeat(Math.max(1,Math.round(REG[L.r].liq[L.t]*5)))}</b></span></div>
+    <div class="act"><span class="need">${L.visited?(S.hints?visitSummary(L):'임장 완료'):`오늘 남은 임장 <b>${S.visits}번</b>`}</span>
+      <button class="btn ${L.visited?'sec':''} sm" data-visit="${L.id}" ${(!L.visited&&S.visits<=0)?'disabled':''}>${L.visited?'다시 보기':'임장 가기'}</button></div>
+    ${buyHTML(L)}
+  </div>`;
+}
+function screenListings(){
+  const committed=S.action==='realty';
+  app.innerHTML=`${hud()}
+    <h2 class="sh">🏠 임장 가는 날</h2>
+    <div class="summary">
+      <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
+      <div><div class="lab">남은 임장</div><div class="val">${S.visits}번</div></div>
+      <div><div class="lab">대출 금리</div><div class="val">${(loanRate()*100).toFixed(2)}%</div></div>
+    </div>
+    <div class="small" style="text-align:left">둘러본 매물은 3일 동안 "관심 매물"로 남아서, 다른 날에도 <b style="color:var(--ink)">내 자산</b>에서 살 수 있어요.</div>
+    ${S.listings.map(L=>listingCard(L,false)).join('')||'<div class="small">오늘은 매물이 없어요</div>'}
+    ${committed?'':'<button class="btn sec" id="back">← 다른 걸 할래요</button>'}
+    <button class="btn" id="end">하루 마치기 →</button>`;
+  bindBuy(()=>keepScroll(screenListings));
+  app.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{const L=S.listings.find(x=>x.id===b.dataset.visit);
+    if(!L.visited){ if(S.visits<=0)return; S.visits--; L.visited=true; S.action='realty';
+      if(!S.watch.some(w=>w.L===L)) S.watch.push({L,until:S.day+2}); }
+    beep(880); screenVisit(L,'listings');});
+  const bk=document.getElementById('back'); if(bk) bk.onclick=()=>{beep(660);screenHub();};
+  document.getElementById('end').onclick=()=>{S.action='realty';beep(880);finishDay(null);};
+}
+// 내 자산: 보유한 집 관리 + 관심 매물 사기 (행동 소모 없음)
+function screenAssets(){
+  const watch=S.watch.filter(w=>!S.listings.includes(w.L)||S.action!=='realty');
+  app.innerHTML=`${hud()}
+    <h2 class="sh">🏘 내 자산</h2>
+    <div class="summary">
+      <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
+      <div><div class="lab">부동산 지분</div><div class="val">${won(reEquity())}</div></div>
+      <div><div class="lab">대출 금리</div><div class="val">${(loanRate()*100).toFixed(2)}%</div></div>
+    </div>
+    ${S.props.length?`<h3 class="sub">내 부동산</h3>${S.props.map(ownedCard).join('')}`:''}
+    ${watch.length?`<h3 class="sub">관심 매물 (둘러본 집, 3일간)</h3>${watch.map(w=>listingCard(w.L,true)).join('')}`:''}
+    ${!S.props.length&&!watch.length?'<div class="small">아직 집도 관심 매물도 없어요</div>':''}
+    <button class="btn sec" id="back">← 돌아가기</button>`;
+  const re=()=>keepScroll(screenAssets);
+  bindBuy(re);
+  app.querySelectorAll('[data-rent]').forEach(b=>b.onclick=()=>{S.props[+b.dataset.rent].mult=+b.dataset.m;beep(520,.04);re();});
+  app.querySelectorAll('[data-sellsel]').forEach(b=>b.onclick=()=>{S.props[+b.dataset.sellsel].sellSel=+b.dataset.m;beep(520,.04);re();});
+  app.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{const p=S.props[+b.dataset.sell]; p.sell=p.sellSel??1; beep(660,.06);re();});
+  app.querySelectorAll('[data-unsell]').forEach(b=>b.onclick=()=>{S.props[+b.dataset.unsell].sell=null; beep(440,.06);re();});
+  app.querySelectorAll('[data-look]').forEach(b=>b.onclick=()=>{beep(660);screenVisit(S.props[+b.dataset.look],'assets');});
+  app.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{const w=S.watch.find(x=>x.L.id===b.dataset.visit); beep(660); screenVisit(w.L,'assets');});
+  document.getElementById('back').onclick=()=>{beep(660); S.action==='realty'?screenListings():screenHub();};
+}
+function keepScroll(fn){const y=window.scrollY; fn(); window.scrollTo(0,y);}
+const findListing=id=>S.listings.find(x=>x.id===id)||(S.watch.find(w=>w.L.id===id)||{}).L;
+function buyHTML(L){
+  const ltv=S.ltvSel[L.id]??.7, need=L.ask*(1-ltv)+L.ask*RE_TAX, ok=S.cash>=need;
+  return `<div class="lbl">대출 비율</div>
+    <div class="quick">${[0,.3,.5,.7].map(v=>`<button data-ltv="${L.id}" data-v="${v}" class="${ltv===v?'on':''}">${Math.round(v*100)}%</button>`).join('')}</div>
+    <div class="act"><span class="need">필요 현금 <b>${won(need)}</b> · 대출 <b>${won(L.ask*ltv)}</b></span>
+      <button class="btn sm" data-buy="${L.id}" ${ok?'':'disabled'}>매입</button></div>`;
+}
+function bindBuy(rerender){
+  app.querySelectorAll('[data-ltv]').forEach(b=>b.onclick=()=>{S.ltvSel[b.dataset.ltv]=+b.dataset.v;beep(520,.04);rerender();});
+  app.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
+    const L=findListing(b.dataset.buy); if(!L)return; const ltv=S.ltvSel[L.id]??.7, need=L.ask*(1-ltv)+L.ask*RE_TAX;
+    if(S.cash<need)return; S.cash-=need;
+    if(S.listings.includes(L)) S.action='realty';
+    // 산 순간부터 "시세"는 적정가로 보인다 → 비싸게 샀는지 싸게 샀는지 드러남
+    S.props.push({...L, value:L.fair, prevValue:L.fair, loan:L.ask*ltv, paid:need, mult:1, tenant:null, sell:null, bought:S.day});
+    S.listings=S.listings.filter(x=>x!==L); S.watch=S.watch.filter(w=>w.L!==L);
+    beep(988,.06);beep(1318,.1);buzz(30); rerender();});
+}
+// 임장: 지도 + 집 안
+function screenVisit(L,from){
+  const owned=S.props.includes(L), canBuy=!owned&&!!findListing(L.id);
+  app.innerHTML=`${hud()}
+    <h2 class="sh">${owned?'내 집 둘러보기':'임장'} · ${propName(L)}</h2>
+    <div class="small" style="text-align:left">${AREA[L.t][L.sz]}평 · ${owned?`시세 <b>${won(L.value)}</b>`:`호가 <b>${won(L.ask)}</b> (보통 시세 ${won(L.base)})`}</div>
+    <h3 class="sub">동네 지도</h3>
+    <canvas id="map" class="pix" width="160" height="110"></canvas>
+    ${legendHTML()}
+    ${S.hints?locHTML(L):''}
+    <div class="small" style="text-align:left">점선 원이 생활권이에요. 원 안에, 집에서 가까이 있을수록 영향이 커요.${S.hints?' 초록 선은 이 집에 좋은 시설, 빨간 선은 나쁜 시설이에요.':''}</div>
+    <h3 class="sub">집 안</h3>
+    <canvas id="room" class="pix" width="160" height="100"></canvas>
+    ${S.hints?featHTML(L):''}
+    <button class="linkbtn" id="hint" style="align-self:flex-start">${S.hints?'힌트 숨기기 (그림만 보고 판단하기)':'힌트 보기'}</button>
+    ${canBuy?`<div class="re">${buyHTML(L)}</div>`:''}
+    <button class="btn sec" id="back">← 돌아가기</button>`;
+  startMap(document.getElementById('map'),L);
+  startInterior(document.getElementById('room'),L);
+  drawLegend(); drawFeatIcons();
+  document.getElementById('hint').onclick=()=>{S.hints=!S.hints;beep(520,.04);screenVisit(L,from);};
+  if(canBuy) bindBuy(()=>{ S.props.some(p=>p.id===L.id)? (from==='assets'?screenAssets():screenListings()) : screenVisit(L,from); });
+  document.getElementById('back').onclick=()=>{beep(660); from==='assets'?screenAssets():screenListings();};
+}
+
+/* =========================================================
+   14. 주식장: 투자 금액 + 2종목 고르기
+   ========================================================= */
+function screenPick(){
+  S.picks=S.picks.slice(0,2);
+  app.innerHTML=`${hud()}
+    <h2 class="sh">📈 오늘 투자할 2종목</h2>
+    <div class="box alloc">
+      <div class="lab">현금 ${won(S.cash)} 중 얼마를 투자할까?</div>
+      <div class="quick" id="amt" style="margin-top:6px">${[25,50,75,100].map(p=>`<button data-p="${p}" class="${S.investPct===p?'on':''}">${p}%</button>`).join('')}</div>
+      <div class="small" style="text-align:left;margin-top:6px" id="amtTxt"></div>
+    </div>
+    <div class="small" style="text-align:left">소형주는 많이 출렁이지만 큰돈이 들어가면 체결가가 크게 밀려요.</div>
+    <div class="grid">${STOCKS.map(s=>`
+      <button class="card" data-k="${s.k}">
+        <div class="sec">${s.sec} · ${VOL[s.v].size}</div><div class="nm">${s.name}</div>
+        <div class="row"><span class="px">${s.code} ${Math.round(S.prices[s.k]).toLocaleString()}</span><span class="tag ${s.v}">${VOL[s.v].label}</span></div>
+      </button>`).join('')}</div>
+    <div class="btns"><button class="btn sec" id="back">← 다른 걸 할래요</button><button class="btn sec" id="news">뉴스 보기</button></div>
+    <button class="btn" id="next" disabled>1분 장 시작!</button>`;
+  const amt=()=>{const iv=S.cash*S.investPct/100; document.getElementById('amtTxt').innerHTML=`투자 <b style="color:var(--ink)">${won(iv)}</b> (종목당 ${won(iv/2)}) · 나머지 ${won(S.cash-iv)}은 적금`;
+    app.querySelectorAll('#amt button').forEach(b=>b.classList.toggle('on',+b.dataset.p===S.investPct));};
+  app.querySelectorAll('#amt button').forEach(b=>b.onclick=()=>{S.investPct=+b.dataset.p;beep(520,.04);amt();});
+  amt();
+  const refresh=()=>{app.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',S.picks.includes(c.dataset.k)));
+    document.getElementById('next').disabled=S.picks.length!==2||S.cash<10000;};
+  app.querySelectorAll('.card').forEach(c=>c.onclick=()=>{const k=c.dataset.k;
+    if(S.picks.includes(k)) S.picks=S.picks.filter(x=>x!==k); else { if(S.picks.length>=2) S.picks.shift(); S.picks.push(k);} beep(600,.04); refresh();});
+  refresh();
+  document.getElementById('back').onclick=()=>{beep(660);screenHub();};
+  document.getElementById('news').onclick=showNewsSheet;
+  document.getElementById('next').onclick=()=>{S.action='stock';beep(990);screenTrade();};
+}
+
+/* =========================================================
+   18. 편의점 계산 알바 (30초)
+   합계와 받은 돈을 보고 거스름돈을 지폐·동전으로 맞춰서 건네기
+   일당 = 30만 + 14만 × 맞힌 손님 − 7만 × 틀린 손님 (30만~100만)
+   ========================================================= */
+const ITEMS=[['삼각김밥',1200,'#f3e8cf'],['컵라면',1500,'#d7263d'],['바나나우유',1700,'#ffd166'],['콜라',2000,'#b5302a'],['과자',1800,'#ff9f43'],
+             ['도시락',4800,'#5ad19a'],['커피',2500,'#7a4f2e'],['아이스크림',1000,'#9fdcff'],['껌',800,'#ff6fb5'],['샌드위치',3200,'#e0b25a']];
+const MONEY=[10000,5000,1000,500,100];
+const jobPay=(ok,bad)=>clamp(300000+ok*140000-bad*70000,300000,1000000);
+let J=null;
+function screenJob(){
+  app.innerHTML=`${hud()}
+    <h2 class="sh">🧾 편의점 알바</h2>
+    <canvas id="shop" class="pix" width="160" height="72"></canvas>
+    <div class="box rules"><ul style="margin:0;padding-left:18px">
+      <li>손님이 낸 돈에서 <b>합계를 뺀 거스름돈</b>을 지폐·동전으로 맞춰서 건네요</li>
+      <li>30초 동안 맞힌 손님 1명당 <b>+14만</b>, 틀리면 <b>−7만</b></li>
+      <li>일당은 최소 30만 원, 최대 100만 원 (5명 맞히면 만점!)</li>
+    </ul></div>
+    <button class="btn sec" id="back">← 다른 걸 할래요</button>
+    <button class="btn" id="go">출근하기!</button>`;
+  startShop(document.getElementById('shop'));
+  document.getElementById('back').onclick=()=>{beep(660);screenHub();};
+  document.getElementById('go').onclick=()=>{S.action='job';beep(990);runJob();};
+}
+function newCustomer(){
+  const n=clamp(1+Math.floor(J.ok/2)+(Math.random()<.35?1:0),1,4);
+  const items=[...Array(n)].map(()=>ITEMS[Math.floor(Math.random()*ITEMS.length)]);
+  const total=items.reduce((a,x)=>a+x[1],0);
+  const paid= total<=5000&&Math.random()<.45 ? 5000 : (total<=10000?10000:(Math.random()<.5?20000:50000));
+  J.cust={items,total,paid,look:Math.floor(Math.random()*4)}; J.given=[];
+}
+function runJob(){
+  J={ok:0,bad:0,left:30,given:[],cust:null}; newCustomer();
+  app.innerHTML=`
+    <div class="topbar"><span class="tm" id="tm">30.0</span><div class="tbar"><i id="tb"></i></div></div>
+    <canvas id="shop" class="pix" width="160" height="72"></canvas>
+    <div class="paper" id="receipt" style="padding:8px 12px"></div>
+    <div class="box" style="padding:8px 12px">
+      <div class="hud"><span>건넬 거스름돈</span><b id="giv" class="px" style="font-size:20px">0</b></div>
+      <div class="money">${MONEY.map(m=>`<button data-m="${m}" class="${m>=1000?'bill':'coin'}">${m.toLocaleString()}</button>`).join('')}</div>
+    </div>
+    <div class="btns"><button class="btn sec" id="undo">하나 빼기</button><button class="btn" id="give">건네기</button></div>
+    <div class="hud"><span>맞힘 <b id="okn">0</b> · 틀림 <b id="badn">0</b></span><span>예상 일당 <b id="pay"></b></span></div>`;
+  startShop(document.getElementById('shop'),true);
+  app.querySelectorAll('.money button').forEach(b=>b.onclick=()=>{if(!J||J.left<=0)return; J.given.push(+b.dataset.m); beep(+b.dataset.m>=1000?700:1100,.03); updJob();});
+  document.getElementById('undo').onclick=()=>{if(!J)return; J.given.pop(); beep(400,.03); updJob();};
+  document.getElementById('give').onclick=()=>{ if(!J||J.left<=0)return;
+    const want=J.cust.paid-J.cust.total, got=J.given.reduce((a,b)=>a+b,0);
+    if(got===want){J.ok++; beep(988,.06);setTimeout(()=>beep(1318,.08),70); jobToast('감사합니다~ 😊',true);}
+    else {J.bad++; beep(200,.15,'sawtooth'); buzz(80); jobToast(`정답은 ${want.toLocaleString()}원이었어요`,false);}
+    newCustomer(); updJob(); };
+  updJob();
+  const t0=performance.now();
+  J.timer=setInterval(()=>{ if(!J)return; J.left=Math.max(0,30-(performance.now()-t0)/1000*(window.JOB_SPEED||1));
+    document.getElementById('tm').textContent=J.left.toFixed(1); document.getElementById('tb').style.width=(J.left/30*100)+'%';
+    if(J.left<=0){clearInterval(J.timer); endJob();} },100);
+}
+function jobToast(msg,good){const r=document.getElementById('receipt'); if(!r)return; const d=document.createElement('div');
+  d.className='jt '+(good?'g':'b'); d.textContent=msg; r.appendChild(d); setTimeout(()=>d.remove(),1200);}
+function updJob(){
+  const c=J.cust, got=J.given.reduce((a,b)=>a+b,0);
+  document.getElementById('receipt').innerHTML=`${c.items.map(([n,p])=>`<div class="rl"><span>${n}</span><span>${p.toLocaleString()}</span></div>`).join('')}
+    <div class="rl tot"><span>합계</span><span>${c.total.toLocaleString()}원</span></div>
+    <div class="rl paid"><span>손님이 낸 돈</span><span>${c.paid.toLocaleString()}원</span></div>`;
+  document.getElementById('giv').textContent=got.toLocaleString();
+  document.getElementById('okn').textContent=J.ok; document.getElementById('badn').textContent=J.bad;
+  document.getElementById('pay').textContent=won(jobPay(J.ok,J.bad));
+}
+function endJob(){
+  const pay=jobPay(J.ok,J.bad), ok=J.ok, bad=J.bad; J=null; S.jobPay=pay;
+  beep(523,.12);setTimeout(()=>beep(659,.12),130);setTimeout(()=>beep(784,.2),260);
+  app.innerHTML=`${hud()}
+    <h2 class="sh">🧾 퇴근!</h2>
+    <canvas id="shop" class="pix" width="160" height="72"></canvas>
+    <div class="box res-big"><div class="small">손님 ${ok}명 맞힘 · ${bad}명 틀림</div><div class="pl up">${won(pay,true)}</div>
+      <div class="msg">${pay>=1000000?'에이스 알바생! 사장님이 감동했어요':pay>=600000?'꽤 손이 빠른데요?':'내일은 더 빨리!'}</div></div>
+    <button class="btn" id="end">하루 마치기 →</button>`;
+  startShop(document.getElementById('shop'));
+  document.getElementById('end').onclick=()=>{beep(880);finishDay(null);};
+}
+// 편의점 계산대 도트 그림
+function startShop(canvas,live){
+  const HAIR=['#2b1d14','#c46a2b','#7a7a88','#e0b25a'], SHIRT=['#5a8f4a','#b5484b','#2f6fd0','#7a4f9a'];
+  animate(canvas,(ctx,t)=>{const W=canvas.width,H=canvas.height;
+    ctx.fillStyle='#e9e2cf'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#cfc6ad'; for(let y=6;y<40;y+=11){ctx.fillRect(4,y,60,2);ctx.fillRect(96,y,60,2);}
+    const goods=['#d7263d','#ffd166','#5ad19a','#2f6fd0','#ff9f43','#ff6fb5'];
+    for(let y=0;y<3;y++)for(let x=0;x<12;x++){ctx.fillStyle=goods[(x+y*5)%6];ctx.fillRect(6+x*5,y*11+1,3,5);ctx.fillRect(98+x*5,y*11+1,3,5);}
+    ctx.fillStyle='#9fdcff'; ctx.fillRect(68,4,24,30); ctx.fillStyle='#ffffff'; ctx.fillRect(68,4,24,2); ctx.fillRect(79,4,2,30);
+    // 손님
+    const c=live&&J&&J.cust; if(c){ const pal={...PAL,H:HAIR[c.look],B:SHIRT[c.look],T:SHIRT[c.look],W:SHIRT[c.look]};
+      const bob=Math.round(Math.sin(t*3));
+      SPR.normal.forEach((row,r)=>{for(let k=0;k<row.length;k++){const ch=row[k]; if(ch==='.')continue; ctx.fillStyle=pal[ch]; ctx.fillRect(68+k*2,14+r*2+bob,2,2);}}); }
+    // 계산대
+    ctx.fillStyle='#7a4f2e'; ctx.fillRect(0,46,W,H-46); ctx.fillStyle='#a06d43'; ctx.fillRect(0,44,W,3);
+    if(c) c.items.forEach((it,i)=>{ctx.fillStyle=it[2]; ctx.fillRect(40+i*12,36,9,8); ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillRect(40+i*12,36,9,2);});
+    // 포스기
+    ctx.fillStyle='#2b2546'; ctx.fillRect(118,30,30,16); ctx.fillStyle='#5ad19a'; ctx.fillRect(121,33,24,7);
+    ctx.fillStyle='#0e2a1f'; if(Math.floor(t*2)%2) ctx.fillRect(123,35,8,3);
+    if(!live){ drawSprite(ctx,SPR.happy,14,46-30,1,false); }
+  });
+}
+
+/* =========================================================
+   15. 1분 주식 미니게임
+   가격 = 뉴스 추세 + 랜덤 흔들림
+   체결가 = 현재가 × (1 ± 주문금액 / 시장크기)   ← 슬리피지
+   ========================================================= */
+function screenTrade(){
+  const r=dayRng(2);
+  const invest=S.cash*S.investPct/100;
+  T={tick:0,running:false,active:0,ratio:.5,invest,rng:r,bTick:-1,
+     stocks:S.picks.map(k=>{const s=STOCKS.find(x=>x.k===k), v=VOL[s.v], p=S.prices[k];
+       return {...s, vol:v.n, mcap:v.mcap, drift:clamp(S.today.eff[k],-1,1)*STOCK_TREND*v.t, price:p, open:p, hist:[p], z:0,
+               budget:invest/2, cash:invest/2, shares:0, avg:0, marks:[], alertUntil:-1, slipCost:0};})};
+  if(r()<.30){T.bTick=200+Math.floor(r()*200); T.bIdx=Math.floor(r()*2); T.bEvt=BREAKING[Math.floor(r()*BREAKING.length)];}
+
+  app.innerHTML=`
+    <div class="topbar"><span class="tm" id="tm">60.0</span><div class="tbar"><i id="tb"></i></div></div>
+    <div class="breaking" id="brk"></div>
+    <div class="tabs">${T.stocks.map((s,i)=>`<button class="tab" data-i="${i}"><span id="tc${i}">${s.code}</span><small id="tp${i}">+0.0%</small></button>`).join('')}</div>
+    <div class="chartwrap"><canvas id="ch" class="pix" width="240" height="140"></canvas><div class="cd" id="cd">3</div><div class="toast" id="toast"></div></div>
+    <div class="quote"><div><div class="nm" id="qn"></div><div class="small" style="text-align:left" id="qs"></div></div><div class="pr" id="qp"></div></div>
+    <div class="box pos" style="padding:8px 10px">
+      <span>보유 <b id="ps"></b></span><span>평균단가 <b id="pa"></b></span>
+      <span>평가 <b id="pv"></b></span><span>손익 <b id="pl"></b></span></div>
+    <div class="quick" id="ratio">${[[.25,'25%'],[.5,'50%'],[1,'전량']].map(([v,t])=>`<button data-r="${v}">${t}</button>`).join('')}</div>
+    <div class="small" id="slip"></div>
+    <div class="btns"><button class="btn buy big" id="buy" disabled>매수</button><button class="btn sell big" id="sell" disabled>매도</button></div>
+    <div class="hud"><span>오늘 총 손익 <b id="tot">0원</b></span><button class="linkbtn" id="news">뉴스 보기</button></div>`;
+  app.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{T.active=+b.dataset.i;beep(440,.03);updTrade();});
+  app.querySelectorAll('#ratio button').forEach(b=>b.onclick=()=>{T.ratio=+b.dataset.r;beep(520,.03);updTrade();});
+  document.getElementById('buy').onclick=doBuy;
+  document.getElementById('sell').onclick=doSell;
+  document.getElementById('news').onclick=showNewsSheet;
+  updTrade(); drawChart();
+  const cd=document.getElementById('cd'); let n=3; beep(440,.1);
+  const iv=setInterval(()=>{n--; if(n>0){cd.textContent=n;beep(440,.1);} else {clearInterval(iv); cd.textContent='GO!'; beep(880,.2);
+      setTimeout(()=>{if(cd.textContent==='GO!')cd.textContent='';},500); T.running=true; document.getElementById('buy').disabled=false; document.getElementById('sell').disabled=false; runTicks();}},800);
+}
+function runTicks(){
+  const dt=1/TICKS;
+  T.timer=setInterval(()=>{
+    if(!T||!T.running) return;
+    T.tick++;
+    if(T.tick===T.bTick){const s=T.stocks[T.bIdx]; const e=T.bEvt.e;
+      s.drift=s.drift*.4+e*.8; s.price*=Math.exp(e*.03); s.alertUntil=T.tick+50;
+      const el=document.getElementById('brk'); el.textContent='[속보] '+T.bEvt.h.replace('{n}',s.name); el.classList.add('show');
+      beep(1200,.15,'sawtooth',.06); setTimeout(()=>beep(900,.15,'sawtooth',.06),180); buzz([80,60,80]);
+    }
+    T.stocks.forEach(s=>{
+      s.z=.85*s.z+.527*gauss(T.rng);
+      s.price*=Math.exp(s.drift*dt + s.vol*Math.sqrt(dt)*s.z*.33*STOCK_NOISE); // .33: 흐름이 이어지는 만큼 크기를 보정
+      s.hist.push(s.price);
+      const back=s.hist[Math.max(0,s.hist.length-25)];
+      if(Math.abs(s.price/back-1)>s.vol*.25) s.alertUntil=Math.max(s.alertUntil,T.tick+10);
+    });
+    updTrade();
+    if(T.tick>=TICKS) endTrade();
+  },TICK_MS);
+  (function loop(){ if(!T)return; drawChart(); if(T.tick<TICKS) requestAnimationFrame(loop); })();
+}
+// 이번에 살 금액 / 팔 수량
+const buyAmt=s=>T.ratio>=1? s.cash : Math.min(s.cash, s.budget*T.ratio);
+const sellSh=s=>T.ratio>=1? s.shares : s.shares*T.ratio;
+let toastTimer=null;
+function toast(msg){const t=document.getElementById('toast'); if(!t)return; t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1400);}
+function doBuy(){ if(!T||!T.running)return; const s=T.stocks[T.active], amt=buyAmt(s);
+  if(amt<1000){beep(200,.08);toast('살 현금이 없어요');return;}
+  const slip=amt/s.mcap, fill=s.price*(1+slip), sh=amt*(1-FEE)/fill;
+  s.avg=(s.avg*s.shares+fill*sh)/(s.shares+sh); s.shares+=sh; s.cash-=amt; s.slipCost+=amt*slip;
+  s.marks.push({i:s.hist.length-1,t:'b'}); beep(988,.06);beep(1318,.08); buzz(30);
+  toast(`매수 ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 +${(slip*100).toFixed(1)}%)`); updTrade(); }
+function sellCore(s,sh){const amt=sh*s.price, slip=amt/s.mcap, fill=s.price*(1-slip);
+  s.cash+=sh*fill*(1-FEE); s.shares-=sh; s.slipCost+=amt*slip; if(s.shares<1e-9){s.shares=0;s.avg=0;} return {amt,slip,fill};}
+function doSell(){ if(!T||!T.running)return; const s=T.stocks[T.active], sh=sellSh(s);
+  if(sh<=0){beep(200,.08);toast('팔 주식이 없어요');return;}
+  const {amt,slip,fill}=sellCore(s,sh);
+  s.marks.push({i:s.hist.length-1,t:'s'}); beep(659,.06);beep(523,.08); buzz(30);
+  toast(`매도 ${won(amt)} · 체결 ${Math.round(fill).toLocaleString()} (밀림 -${(slip*100).toFixed(1)}%)`); updTrade(); }
+const val=s=>s.cash+s.shares*s.price;
+function updTrade(){
+  if(!T)return;
+  const left=Math.max(0,(TICKS-T.tick)*TICK_MS/1000);
+  document.getElementById('tm').textContent=left.toFixed(1);
+  document.getElementById('tb').style.width=(100*(TICKS-T.tick)/TICKS)+'%';
+  T.stocks.forEach((s,i)=>{const ch=s.price/s.open-1; const tp=document.getElementById('tp'+i);
+    tp.textContent=pct(ch); tp.className=cls(ch);
+    document.getElementById('tc'+i).textContent=(s.shares>0?'● ':'')+s.code;
+    const tab=app.querySelector(`.tab[data-i="${i}"]`); tab.classList.toggle('on',i===T.active);
+    tab.classList.toggle('alert',i!==T.active&&s.alertUntil>T.tick);});
+  const s=T.stocks[T.active], ch=s.price/s.open-1;
+  document.getElementById('qn').textContent=s.name;
+  document.getElementById('qs').textContent=s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
+  document.getElementById('qp').innerHTML=`<span class="${cls(ch)}">${Math.round(s.price).toLocaleString()}<small>${pct(ch)}</small></span>`;
+  const held=s.shares*s.price/val(s);
+  document.getElementById('ps').textContent=s.shares>0?`주식 ${Math.round(held*100)}%`:'현금 100%';
+  document.getElementById('ps').style.color=s.shares>0?'var(--gold)':'';
+  document.getElementById('pa').textContent=s.shares>0?Math.round(s.avg).toLocaleString():'-';
+  document.getElementById('pv').textContent=won(val(s));
+  const pl=val(s)-s.budget; const plEl=document.getElementById('pl'); plEl.textContent=won(pl,true); plEl.className=cls(pl);
+  const tot=T.stocks.reduce((a,x)=>a+val(x)-x.budget,0); const tEl=document.getElementById('tot'); tEl.textContent=won(tot,true); tEl.className=cls(tot);
+  app.querySelectorAll('#ratio button').forEach(b=>b.classList.toggle('on',+b.dataset.r===T.ratio));
+  const ba=buyAmt(s), sa=sellSh(s)*s.price;
+  document.getElementById('slip').textContent=`매수 ${won(ba)} (밀림 ${(ba/s.mcap*100).toFixed(1)}%) · 매도 ${won(sa)} (밀림 ${(sa/s.mcap*100).toFixed(1)}%)`;
+}
+function drawChart(){
+  const c=document.getElementById('ch'); if(!c||!T)return; const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  const W=c.width,H=c.height, s=T.stocks[T.active], h=s.hist;
+  ctx.fillStyle='#120f24'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#2a2550'; for(let y=15;y<H;y+=30)for(let x=0;x<W;x+=3)ctx.fillRect(x,y,1,1); for(let x=40;x<W;x+=40)for(let y=0;y<H;y+=3)ctx.fillRect(x,y,1,1);
+  let lo=Math.min(...h,s.open*.97), hi=Math.max(...h,s.open*1.03);
+  if(s.shares>0){lo=Math.min(lo,s.avg);hi=Math.max(hi,s.avg);}
+  const pad=(hi-lo)*.1; lo-=pad; hi+=pad;
+  const X=i=>Math.round(i/TICKS*(W-6))+2, Y=p=>Math.round((1-(p-lo)/(hi-lo))*(H-8))+4;
+  ctx.fillStyle='#6d6790'; const oy=Y(s.open); for(let x=0;x<W;x+=4)ctx.fillRect(x,oy,2,1);
+  for(let i=1;i<h.length;i++){
+    const x0=X(i-1),y0=Y(h[i-1]),x1=X(i),y1=Y(h[i]);
+    ctx.fillStyle=h[i]>=s.open?'#ff5a5f':'#4ea8ff';
+    const steps=Math.max(Math.abs(x1-x0),Math.abs(y1-y0),1);
+    for(let k=0;k<=steps;k++){ctx.fillRect(Math.round(x0+(x1-x0)*k/steps),Math.round(y0+(y1-y0)*k/steps),2,2);}
+  }
+  s.marks.forEach(m=>{const x=X(m.i),y=Y(h[m.i]); ctx.fillStyle=m.t==='b'?'#ffd166':'#ffffff';
+    if(m.t==='b'){ctx.fillRect(x-1,y+5,4,2);ctx.fillRect(x,y+3,2,2);} else {ctx.fillRect(x-1,y-6,4,2);ctx.fillRect(x,y-4,2,2);} });
+  // 평균단가 선 (노란 점선)
+  if(s.shares>0){const by=Y(s.avg); ctx.fillStyle='#ffd166'; for(let x=0;x<W;x+=6)ctx.fillRect(x,by,3,1); ctx.fillRect(W-14,by-4,12,1);}
+  const lx=X(h.length-1), ly=Y(h[h.length-1]); if(Math.floor(performance.now()/250)%2){ctx.fillStyle='#fff';ctx.fillRect(lx-1,ly-1,4,4);}
+}
+function endTrade(){
+  clearInterval(T.timer); T.running=false;
+  // 장 마감: 남은 주식은 한꺼번에 팔림 (전량이라 밀림도 큼!)
+  T.stocks.forEach(s=>{ if(s.shares>0) sellCore(s,s.shares); S.prices[s.k]=s.price; });
+  document.getElementById('buy').disabled=true; document.getElementById('sell').disabled=true;
+  const cd=document.getElementById('cd'); cd.textContent='장 마감'; cd.style.fontSize='34px'; cd.style.fontFamily='Do Hyeon';
+  beep(523,.12);setTimeout(()=>beep(392,.2),150);
+  const result=T.stocks.map(s=>({name:s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
+  setTimeout(()=>{T=null;finishDay(result);},1400);
+}
+
+/* =========================================================
+   16. 저녁 결산 + 하루 마감 팝업
+   ========================================================= */
+const ACT_NAME={stock:'📈 주식장',realty:'🏠 임장',job:'🧾 편의점 알바'};
+function finishDay(result){
+  const r=dayRng(3), td=S.today;
+  const invest=S.action==='stock'?S.cash*S.investPct/100:0, save=S.cash-invest, interest=save*saveRate();
+  const stockEnd=result?result.reduce((a,x)=>a+x.end,0):invest;
+  // 안 고른 종목도 오늘 뉴스대로 움직임
+  STOCKS.forEach(s=>{ if(!result||!S.picks.includes(s.k)){const v=VOL[s.v]; S.prices[s.k]*=Math.exp(clamp(td.eff[s.k],-1,1)*STOCK_TREND*v.t + v.n*STOCK_NOISE*gauss(r)*.6);} });
+
+  // ── 복권 추첨 ──
+  const lr=dayRng(6); let lottoWin=0;
+  S.lotto.forEach(tk=>{ let x=lr(), acc=0; tk.prize=0; tk.name='꽝';
+    for(const [p,amt,nm] of LOTTO_TIERS){ acc+=p; if(x<acc){tk.prize=amt; tk.name=nm; break;} } lottoWin+=tk.prize; });
+
+  // ── 부동산 결산 ──
+  let rentIn=0, loanOut=0, soldCash=0; const logs=[];
+  for(const p of S.props.slice()){
+    const nm=propName(p);
+    loanOut+=p.loan*loanRate();                          // 공실이어도 이자는 나감
+    if(p.tenant){ rentIn+=p.tenant.rent; p.tenant.days--;
+      if(p.tenant.days<=0){p.tenant=null; logs.push(`${nm}: 계약 만료 → 내일부터 공실`);} }
+    else if(r()<findP(p,p.mult)){ p.tenant={rent:mktRent(p)*p.mult, days:CONTRACT_DAYS-1}; rentIn+=p.tenant.rent;
+      logs.push(`${nm}: 세입자 입주! 월세 하루 ${won(p.tenant.rent)}`); }
+    else logs.push(`${nm}: 세입자를 못 구했어요 (공실)`);
+    if(p.sell){ if(r()<sellP(p,p.sell)){ soldCash+=p.value*p.sell*(1-RE_TAX)-p.loan; S.props.splice(S.props.indexOf(p),1);
+        logs.push(`${nm}: 매도 완료! ${won(p.value*p.sell)}에 팔렸어요`); }
+      else logs.push(`${nm}: 아직 안 팔렸어요`); }
+  }
+  const reBefore=reEquity();
+  for(const p of S.props){
+    p.prevValue=p.value;
+    p.value*=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+  }
+  for(const k in S.rentLv) S.rentLv[k]=clamp(S.rentLv[k]*(1+td.rentEff[k]*.15)+(1-S.rentLv[k])*.05,.6,1.6);
+  for(const k in S.rentTypeLv) S.rentTypeLv[k]=clamp(S.rentTypeLv[k]*(1+td.rentTypeEff[k]*.15)+(1-S.rentTypeLv[k])*.05,.6,1.6);
+  const reMove=reEquity()-reBefore;
+
+  S.cash=save+interest+stockEnd+S.jobPay+lottoWin+rentIn-loanOut+soldCash;
+  while(S.cash<0&&S.props.length){   // 현금이 마이너스면 대출 많은 집부터 경매 (시세 80%, 즉시)
+    const p=S.props.slice().sort((a,b)=>b.loan-a.loan)[0];
+    S.cash+=p.value*.8-p.loan; S.props.splice(S.props.indexOf(p),1); logs.push(`⚠ 이자를 못 내서 ${propName(p)} 경매 처분!`);
+  }
+  S.watch=S.watch.filter(w=>w.until>S.day);   // 관심 매물 기한
+
+  const net=netWorth(), dayPL=net-S.netStart, ch=dayPL/S.netStart;
+  const tradePL=result?result.reduce((a,x)=>a+x.pl,0):0, lottoNet=lottoWin-S.lottoCost;
+  const H={day:S.day, net, act:S.action, stock:tradePL, job:S.jobPay, save:interest, rent:rentIn, loan:-loanOut, re:reMove, lotto:lottoNet};
+  H.deal=dayPL-(tradePL+S.jobPay+interest+rentIn-loanOut+reMove+lottoNet);   // 나머지 = 집 사고판 차익·세금
+  S.history.push(H);
+  screenDayEnd({H,dayPL,ch,net,result,logs});
+}
+function screenDayEnd({H,dayPL,ch,net,result,logs}){
+  const mood=ch>=.05?'happy':(ch<=-.03?'sad':'normal');
+  const msgs={happy:['오늘은 내가 워런 버핏!','치킨 시켜! 두 마리로!','뉴스 읽는 눈이 생겼다'],sad:['…오늘은 라면이다','손절은 빠를수록 좋았는데','내일은 다르다. 진짜로.'],normal:['무난한 하루','본전이면 선방이지','큰 욕심은 화를 부른다']};
+  const msg=msgs[mood][Math.floor(Math.random()*3)];
+  const done=net>=GOAL, broke=net<100000, last=S.day>=DAYS, progress=clamp(net/GOAL,0,1);
+  const moodName=MOODS.find(m=>m[0]===S.today.mood)[2];
+  const line=(label,v,sub)=>Math.abs(v)<1?'':`<div><span>${label}${sub?` <span class="sub">${sub}</span>`:''}</span><b class="${cls(v)}">${won(v,true)}</b></div>`;
+  app.innerHTML=`${hud()}<canvas id="sc" class="pix" width="160" height="80"></canvas>`;
+  startScene(document.getElementById('sc'),'evening',mood);
+  const ov=document.createElement('div'); ov.className='modal'; ov.id='dayend';
+  ov.innerHTML=`<div class="pop">
+    <div class="pophead"><span class="px">DAY ${S.day} 마감</span><span>${S.action?ACT_NAME[S.action]:'☕ 쉬는 날'}</span></div>
+    <div class="res-big"><div class="pl ${cls(dayPL)}">${won(dayPL,true)}</div>
+      <div class="${cls(dayPL)} px" style="font-size:14px">${pct(ch)}</div><div class="msg">${msg}</div></div>
+    <div class="lines">
+      ${result?result.map(x=>line(x.name,x.pl,`주가 ${pct(x.chg)}`)).join(''):''}
+      ${line('알바 일당',H.job)}
+      ${line('적금 이자',H.save,`하루 ${(saveRate()*100).toFixed(2)}%`)}
+      ${line('월세',H.rent)}${line('대출 이자',H.loan)}${line('집값 변동',H.re)}${line('집 사고판 차익·세금',H.deal)}
+      ${S.lotto.length?line('복권',H.lotto,`${S.lotto.length}장`):''}
+    </div>
+    ${S.lotto.length?`<div class="tickets">${S.lotto.map((tk,i)=>`<div class="tk" data-i="${i}"><span>?</span></div>`).join('')}</div>`:''}
+    ${logs.length?`<div class="sub logs">${logs.join('<br>')}</div>`:''}
+    <div class="prog"><i style="width:${progress*100}%"></i><span>1억까지 ${(progress*100).toFixed(1)}% · 순자산 ${won(net)}</span></div>
+    <button class="linkbtn" id="why">오늘 뉴스 해설 보기 (${moodName})</button>
+    <div class="paper reveal" id="whybox" style="display:none">${newsHTML(S.today.items,true)}</div>
+    <button class="btn" id="next">${done?'🏆 결과 보기':broke?'파산…':last?'30일 종료':'다음 날 →'}</button>
+  </div>`;
+  document.body.appendChild(ov);
+  if(mood==='happy'){beep(784,.1);setTimeout(()=>beep(988,.1),120);setTimeout(()=>beep(1318,.2),240);} else if(mood==='sad'){beep(330,.2,'triangle');setTimeout(()=>beep(247,.3,'triangle'),220);}
+  // 복권 긁기 연출: 한 장씩 뒤집힘
+  S.lotto.forEach((tk,i)=>setTimeout(()=>{const el=ov.querySelector(`.tk[data-i="${i}"]`); if(!el)return;
+    el.classList.add('open',tk.prize?'win':'lose'); el.innerHTML=`<b>${tk.name}</b><small>${tk.prize?won(tk.prize):''}</small>`;
+    tk.prize?(beep(1318,.08),setTimeout(()=>beep(1760,.12),90)):beep(300,.06);},700+i*700));
+  ov.querySelector('#why').onclick=()=>{const b=ov.querySelector('#whybox'); b.style.display=b.style.display==='none'?'block':'none';};
+  ov.querySelector('#next').onclick=()=>{beep(880); ov.remove();
+    if(done){saveBest(S.day,net);screenEnd('win');} else if(broke) screenEnd('broke'); else if(last) screenEnd('fail'); else {S.day++;startDay();} };
+}
+
+function screenEnd(kind){
+  const net=netWorth();
+  const t={win:['1억 달성!',`DAY ${S.day} 만에 순자산 ${won(net)}을 만들었어요`],broke:['파산…','자산을 거의 다 잃었어요. 처음부터 다시!'],fail:['시간 종료','30일 동안 '+won(net)+'까지 불렸어요']}[kind];
+  const best=loadBest();
+  app.innerHTML=`<div class="title-logo"><div class="en px">${kind==='win'?'CLEAR!':'GAME OVER'}</div><div class="ko dh">${t[0]}</div></div>
+    <canvas id="sc" class="pix" width="160" height="80"></canvas>
+    <div class="box" style="text-align:center;line-height:1.7">${t[1]}<br><span class="small">시작 1,000만 원 → 최종 ${won(net)} (${pct(net/START_MONEY-1)})</span></div>
+    ${best?`<div class="small">내 최고 기록: DAY ${best.days} 만에 ${won(best.money)}</div>`:''}
+    ${reportHTML()}
+    <button class="btn" id="again">다시 도전</button><button class="btn sec" id="home">처음 화면</button>`;
+  drawReport();
+  startScene(document.getElementById('sc'),kind==='win'?'evening':'night',kind==='win'?'happy':'sad');
+  document.getElementById('again').onclick=()=>{beep(880);newRun();startDay();};
+  document.getElementById('home').onclick=()=>{beep(660);screenTitle();};
+}
+
+screenTitle();
+</script>
+</body>
+</html>
