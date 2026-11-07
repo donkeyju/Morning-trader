@@ -18,13 +18,14 @@
 
 ## 파일 구조
 빌드 도구 없이 브라우저에서 바로 돌아가요. 모든 함수와 상수는 **전역**이라 파일끼리 그냥 서로 불러 써요.
-`index.html`의 `<script>` **순서가 중요해요**: data → core → realty → stock → job → logo → day (day.js 마지막 줄에서 게임 시작).
+`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → logo → day (day.js 마지막 줄에서 게임 시작).
 
 | 파일 | 내용 | 주요 함수·상수 |
 |---|---|---|
 | `index.html` | 뼈대, 폰트, 스크립트 불러오기 | |
 | `css/style.css` | 모든 스타일. 색은 맨 위 `:root` 변수 | |
-| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `LTV_SPREAD` `RE_CONVERGE` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `LOCAL_NEWS` `STOCK_NEWS` `REALTY_NEWS` `CRASH_NEWS` `MOODS` `BREAKING` |
+| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `LTV_SPREAD` `RE_CONVERGE` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `NEWS_MAX_SEEN` `MOODS` |
+| `js/news.js` | **뉴스 데이터 전부** (158개) | `STOCK_NEWS`(79) `REALTY_NEWS`(34) `CRASH_NEWS`(5) `BREAKING`(15) `LOCAL_NEWS`(25) |
 | `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate(ltv)` `propRate(p)` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
@@ -36,7 +37,7 @@
 | `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 | |
 
 ### 상태 객체
-- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
+- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `newsSeen`(뉴스 제목별 본 횟수) `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
 - `T` (stock.js): 1분 장 진행 상태. `J` (job.js): 알바 진행 상태.
 - `S.today` (day.js `startDay`): 오늘 뉴스 `items`, 섹터 영향 `eff`, 부동산 영향 `reEff` `reTypeEff` `rentEff` `rentTypeEff`, 분위기 `mood`
 
@@ -53,13 +54,21 @@
 - `finishDay`의 하루 기록(`S.history`) 항목: stock, job, save, rent, loan, re, lotto, deal(나머지 = 집 사고판 차익·세금). 새 수입원을 넣으면 **여기와 `CAT_STYLE`(day.js), 마감 팝업 줄**에 같이 추가.
 
 ## 뉴스 데이터 구조 (사용자가 물어봄)
-뉴스 한 개에 **모든 영향이 같이** 적혀 있음. 편의점용·주식용으로 따로 관리하지 않음 (`js/data.js`).
+뉴스 한 개에 **모든 영향이 같이** 적혀 있음. 편의점용·주식용으로 따로 관리하지 않음 (`js/news.js`).
 ```js
 { src:'날씨와생활', h:'기록적 폭염…', b:'본문', e:{energy:.3, food:.25}, cvs:{ice:.6, hot:-.3} }
 ```
 - 주식 `e`(섹터별) `mkt`(시장 전체) / 부동산 `re` `reType` `reAll` `rent` `rentType` / 금리 `rate` / 편의점 `cvs`(ice·hot·health·snack) / `rumor`(찌라시: 50% 거짓이면 반대로 −0.4배)
 - 따로 관리하는 건 셋뿐: `CRASH_NEWS`(블랙먼데이 힌트), `BREAKING`(1분 장 속보), `LOCAL_NEWS`(점장 전용 동네 소식)
 - 나중에 실제 뉴스 API를 붙이면 기사마다 이 칸들을 채우면 됨 (AI로 영향 값 붙이기)
+
+### 뉴스 개수와 반복 (v0.6.4, 사용자 요청: 2.5배로 늘리고 반복은 최대 2번, 섹터 균형)
+- 62개 → **158개**: 주식 79 / 부동산 34 / 블랙먼데이 힌트 5 / 속보 15 / 동네 소식 25
+- 같은 아침 뉴스는 **한 판에 최대 2번** (`NEWS_MAX_SEEN`, `startDay`가 `S.newsSeen`으로 셈, 안 본 뉴스부터 뽑음). 500판 시뮬레이션: 3번 이상 0회, 한 판에 평균 116개를 보고 34개가 두 번 나옴
+- 섹터마다 주인공 뉴스 9~10개(건설은 금리 뉴스 포함 12), 호재 5 : 악재 4~5. 찌라시 13개
+- **새 뉴스를 추가할 때 주의:** 예전 62개는 소형주(바이오·우주항공)와 부동산에 호재가 많았고, 밸런스가 거기 기대고 있었음.
+  호재/악재를 반반으로 맞췄더니 투자형 봇이 66% → 40%로 떨어짐. 그래서 v0.6.4에서 **새로 넣은 뉴스만** 주식 영향 ×1.3,
+  부동산 악재 ×0.75로 조정해서 원래 수준(62.5%)으로 되돌림. 뉴스를 더 넣으면 `run-balance.py`로 꼭 다시 잴 것
 
 ## 화면 규칙 (사용자 피드백)
 - 승진·등급 진행은 **✅⬜** 체크 표시 (●○는 글자 맞추기 같다고 함). 단계 이름은 **"Lv.1 개미", "Lv.2 슈퍼개미"**처럼 `lvName()`.
@@ -79,17 +88,17 @@
 ## 밸런스 목표와 현재 값
 **밸런스 숫자를 바꾸면 반드시 `python tools/run-balance.py`로 다시 재고, 결과를 사용자에게 숫자로 알려줄 것.**
 
-| 봇 | 목표 | 현재 (v0.6.1, 200판) |
+| 봇 | 목표 | 현재 (v0.6.4, 200판) |
 |---|---|---|
-| 투자형 봇 skilled (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | **66.5%** (약간 낮음), 보통 DAY 25, 중간값 1.13억 |
-| 섞기 봇 hybrid | 투자형과 비슷 | 57.5%, 보통 DAY 27 |
-| 사업형 봇 biz (편의점만) | 사장 단계 전엔 1억 미만 | 중간값 5,552만 (점장 도달 100%) |
-| 평범한 봇 average (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,631만, 하위10% 1,789만 |
+| 투자형 봇 skilled (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | **62.5%** (약간 낮음), 보통 DAY 25, 중간값 1.11억 (v0.6.1: 66.5%) |
+| 섞기 봇 hybrid | 투자형과 비슷 | 61.5%, 보통 DAY 26 |
+| 사업형 봇 biz (편의점만) | 사장 단계 전엔 1억 미만 | 중간값 5,619만 (점장 도달 100%) |
+| 평범한 봇 average (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,604만, 하위10% 1,702만 |
 
 - 투자형 봇 행동: 주식 20.2일 / 임장 8.3일 / 편의점 1.5일
 - 투자형 수익원: 부동산 5,692만(52%: 월세 5,162 − 이자 1,911 + 집값 2,706 − 세금 265) / 주식 5,117만(47%)
 - 사용자 의도: 부동산과 주식이 비슷한 비중 (v0.6에선 부동산 59% vs 주식 40%이라 조정함)
-- 투자형 66.5%는 일부러 그대로 둠: 다음 단계(사장 / 펀드매니저)에서 자동 수입이 생기면 오를 것 → 그때 70~80%로 맞출 것
+- 투자형 62.5%는 일부러 그대로 둠: 다음 단계(사장 / 펀드매니저)에서 자동 수입이 생기면 오를 것 → 그때 70~80%로 맞출 것
 
 ### 숫자가 이렇게 된 이유 (바꾸기 전에 읽기)
 - `STOCK_TREND 0.5` / `STOCK_NOISE 1.4`: v0.3에서 완벽한 봇도 1억 0%여서 올림. 둘을 같이 올려서 "해석하기 나름"은 유지.
@@ -117,7 +126,7 @@
 4. 랜덤은 `dayRng(salt)`(씨앗 고정)를 쓰면 같은 씨앗에서 같은 결과 → 비교 테스트 가능. salt 번호: 1 뉴스, 2 주식장, 3 저녁 결산, 5 매물, 6 복권, 7 점장 발주(동네 소식·수요), 9 봇 전용.
 5. **배포:** `main`에 push하면 GitHub Pages(https://donkeyju.github.io/Morning-trader/)에 자동 반영. 사용자가 Settings → Pages에서 직접 켜야 함(이 환경에서 Pages API는 막혀 있음).
 6. 커밋 메시지는 한국어로, 무엇을 왜 바꿨는지.
-7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.6.2). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
+7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.6.4). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
 
 ## 다음에 할 것
 **합의된 순서:** ① 편의점 승진 사다리 ✅ ② 주식 등급(슈퍼개미 공매도) ✅ ③ 사장(가게 인수) / 펀드매니저 — 자동 수입 단계 ④ 확장(2호점, 3종목, 자동 손절·익절)

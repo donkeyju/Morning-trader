@@ -45,8 +45,12 @@ function startDay(){
   for(const [m,w] of MOODS){ if(roll<w){mood=m;break;} roll-=w; }
   if(S.day===1&&mood==='crash') mood='stock';
   // ② 분위기에 맞게 뉴스 고르기
-  const picked=[]; let rumors=0;
-  const add=(pool,n)=>{ for(const x of shuffle(pool,r)){ if(n<=0||picked.length>=5)break;
+  // 같은 뉴스는 한 판에 최대 2번 (NEWS_MAX_SEEN). 안 본 뉴스부터 먼저 뽑음
+  const picked=[]; let rumors=0, cap=NEWS_MAX_SEEN;
+  const seen=x=>S.newsSeen[x.h]||0;
+  const add=(pool,n)=>{ const order=shuffle(pool,r).sort((a,b)=>seen(a)-seen(b));   // 섞은 뒤 "덜 본 순"으로 (같으면 섞인 순서 유지)
+    for(const x of order){ if(n<=0||picked.length>=5)break;
+      if(seen(x)>=cap) continue;
       if(picked.includes(x)) continue; if(x.rumor&&rumors>=1) continue; if(picked.some(p=>conflicts(p,x))) continue;
       if(x.rumor) rumors++; picked.push(x); n--; } };
   const strong=STOCK_NEWS.filter(n=>Object.values(n.e||{}).some(v=>Math.abs(v)>=.4));
@@ -55,6 +59,8 @@ function startDay(){
   else if(mood==='realty'){ add(REALTY_NEWS,3); add(any,2); }
   else if(mood==='stock'){ add(strong,3); add(any,2); }
   add(any,5); // 모자라면 채우기
+  if(picked.length<5){ cap=99; add(any,5); }   // 그래도 모자라면(거의 없음) 횟수 제한 풀기
+  picked.forEach(x=>S.newsSeen[x.h]=seen(x)+1);
   // ③ 영향 합치기
   const eff=Object.fromEntries(STOCKS.map(s=>[s.k,(r()-.5)*.08]));
   const z=()=>({seoul:0,metro:0,local:0}), zt=()=>({villa:0,apt:0,shop:0});
