@@ -1,4 +1,4 @@
-/* 모닝 트레이더 — 화면 꾸미기 (색은 맨 위 :root 변수) */
+/* ONE MORE ZERO — 화면 꾸미기 (색은 맨 위 :root 변수) */
 :root{
   --bg:#1b1830; --panel:#2b2546; --panel2:#3a3260; --ink:#f4ecd8; --dim:#a79fc4;
   --paper:#f3e8cf; --paperInk:#2a2230; --line:#0d0b18;
@@ -18,7 +18,8 @@ canvas.pix{width:100%;image-rendering:pixelated;image-rendering:crisp-edges;disp
 .btn.sm{font-size:17px;padding:9px 8px;box-shadow:0 3px 0 var(--line)}
 .hud{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--dim)}
 .hud b{color:var(--ink);font-size:16px}
-.title-logo{text-align:center;margin-top:8px}
+.title-logo{text-align:center;margin-top:-2px}
+canvas.logo{margin-top:4px}
 .title-logo .en{font-size:30px;color:var(--gold);text-shadow:3px 3px 0 var(--line);letter-spacing:1px}
 .title-logo .ko{font-size:18px;margin-top:2px;color:var(--dim)}
 .title-logo .big{font-size:76px;line-height:1;color:var(--gold);text-shadow:5px 5px 0 var(--line)}

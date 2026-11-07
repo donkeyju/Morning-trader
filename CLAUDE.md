@@ -1,6 +1,7 @@
-# CLAUDE.md — 「1억」 작업 안내서
+# CLAUDE.md — 「ONE MORE ZERO」 작업 안내서
 
-> 게임 이름: **1억** (사용자가 정함. 예전 이름 "모닝 트레이더" — 저장소 이름 Morning-trader는 그대로)
+> 게임 이름: **ONE MORE ZERO** (사용자가 정함: 10,000,000 뒤에 0 하나를 더 붙여 1억으로. 예전 이름 "모닝 트레이더" → "1억" — 저장소 이름 Morning-trader는 그대로)
+> 타이틀 로고는 `js/logo.js`의 도트 로고(금색 10,000,000 + 통통 튀는 민트색 0 + ONE MORE ZERO). 시안 B·C(COMPOUND)는 탈락.
 
 이 파일은 새 대화를 시작한 Claude가 프로젝트를 바로 이어갈 수 있게 쓴 안내서예요.
 **작업을 시작하기 전에 끝까지 읽어주세요.** 사용자와 정한 결정, 숫자의 이유, 작업 규칙이 다 여기 있어요.
@@ -17,7 +18,7 @@
 
 ## 파일 구조
 빌드 도구 없이 브라우저에서 바로 돌아가요. 모든 함수와 상수는 **전역**이라 파일끼리 그냥 서로 불러 써요.
-`index.html`의 `<script>` **순서가 중요해요**: data → core → realty → stock → job → day (day.js 마지막 줄에서 게임 시작).
+`index.html`의 `<script>` **순서가 중요해요**: data → core → realty → stock → job → logo → day (day.js 마지막 줄에서 게임 시작).
 
 | 파일 | 내용 | 주요 함수·상수 |
 |---|---|---|
@@ -28,6 +29,7 @@
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
 | `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots`(✅⬜ 진행 표시) `lvName`("Lv.2 물류 담당자") `startShop` |
+| `js/logo.js` | 타이틀 도트 로고 | `LOGO_GLYPH`(5x7 도트 글꼴) `logoText` `drawLogo` `startLogo`(움직임, 화면 바뀌면 멈춤) |
 | `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `screenReport`(게임 중 리포트) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
 | `tools/balance-bot.js` | 밸런스 봇 (게임 함수를 써서 30일 자동 플레이) | `runBot("skilled"/"average", 판수)` |
 | `tools/run-balance.py` | 봇 실행기 | |

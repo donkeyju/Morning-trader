@@ -1,5 +1,5 @@
 /* =========================================================
-   모닝 트레이더 — 하루 흐름
+   ONE MORE ZERO — 하루 흐름
    10 타이틀 / 11 아침 뉴스 / 13 오늘 뭐 할까(하루 1행동) / 16 저녁 결산·마감 팝업 / 17 종료 리포트 / 게임 시작
    (파일 구조와 규칙은 저장소의 CLAUDE.md 참고)
    ========================================================= */
@@ -9,7 +9,8 @@
 function screenTitle(){
   const best=loadBest();
   app.innerHTML=`
-    <div class="title-logo"><div class="big dh">1억</div><div class="ko dh">30일 안에 1,000만 원을 1억으로</div></div>
+    <canvas id="logo" class="pix logo" width="640" height="200" aria-label="ONE MORE ZERO"></canvas>
+    <div class="title-logo"><div class="ko dh">30일 안에 1,000만 원을 1억으로</div></div>
     <canvas id="sc" class="pix" width="160" height="80"></canvas>
     <div class="box rules"><ul style="margin:0;padding-left:18px">
       <li>매일 아침 <b>뉴스 5개</b>를 읽고, 오늘 <b>한 가지</b>만 골라요</li>
@@ -21,6 +22,7 @@ function screenTitle(){
     </ul></div>
     ${best?`<div class="small">내 최고 기록: DAY ${best.days} 만에 ${won(best.money)}</div>`:''}
     <button class="btn" id="go">게임 시작</button>`;
+  startLogo(document.getElementById('logo'));
   startScene(document.getElementById('sc'),'night','normal');
   document.getElementById('go').onclick=()=>{beep(880);newRun();startDay();};
 }
