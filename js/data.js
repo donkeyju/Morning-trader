@@ -72,22 +72,22 @@ const propName = p=>`${REG[p.r].name} ${SIZES[p.sz].name} ${TYPES[p.t].name}`;
 /* ---------- 3-2. 편의점 커리어 / 투자자 등급 ----------
    좋은 근무(또는 좋은 장)를 need번 쌓으면 다음 단계로. 횟수는 누적(연속 아니어도 됨) */
 const CAREER = [
-  {title:'계산 알바',   icon:'🧾', need:4, pay:[300000, 1000000]},   // 좋은 근무: 맞힘 4명↑ & 틀림 1명↓
-  {title:'물류 담당자', icon:'📦', need:3, pay:[600000, 1500000]},   // 좋은 근무: 8개↑ 처리, 정확도 80%↑, 유통기한 실수 1개↓
-  {title:'점장',        icon:'👔', need:4, pay:[700000, 1600000]},   // 좋은 근무: 발주 적중 70%↑ → 다 채우면 인수 제안
+  {title:'계산 알바',   icon:'register', need:4, pay:[300000, 1000000]},   // 좋은 근무: 맞힘 4명↑ & 틀림 1명↓
+  {title:'물류 담당자', icon:'box', art:'P_box', need:3, pay:[600000, 1500000]},   // 좋은 근무: 8개↑ 처리, 정확도 80%↑, 유통기한 실수 1개↓
+  {title:'점장',        icon:'tie', art:'P_tie', need:4, pay:[700000, 1600000]},   // 좋은 근무: 발주 적중 70%↑ → 다 채우면 인수 제안
 ];
 const INV_TIERS = [
-  {title:'개미',     icon:'🐜', need:4},     // 좋은 장: 그날 주식 수익이 투자금의 +5% 이상
-  {title:'슈퍼개미', icon:'🦸', need:null},  // 공매도 해금. 다음 등급(전업투자자)은 다음 업데이트
+  {title:'개미',     icon:'ant', need:4},     // 좋은 장: 그날 주식 수익이 투자금의 +5% 이상
+  {title:'슈퍼개미', icon:'superant', art:'P_superant', need:null},  // 공매도 해금. 다음 등급(전업투자자)은 다음 업데이트
 ];
 const INV_GOOD = 0.05;
 const SHORT_FEE = 0.005;   // 공매도 들어갈 때 주식 빌리는 비용 0.5% (공매도가 너무 쉬운 돈이 되지 않게)
 // 점장 발주: 4가지 상품군. 뉴스의 cvs 값 + 동네 소식 + 약간의 랜덤으로 그날 수요(적게/보통/많이)가 정해짐
 const CVS_CATS = [
-  {k:'ice',    name:'아이스크림·음료', icon:'🍦'},
-  {k:'hot',    name:'따뜻한 즉석식품', icon:'🍜'},
-  {k:'health', name:'위생·건강용품',   icon:'💊'},
-  {k:'snack',  name:'과자·맥주',       icon:'🍺'},
+  {k:'ice',    name:'아이스크림·음료', icon:'ice'},
+  {k:'hot',    name:'따뜻한 즉석식품', icon:'hot'},
+  {k:'health', name:'위생·건강용품',   icon:'health'},
+  {k:'snack',  name:'과자·맥주',       icon:'snack'},
 ];
 
 const NEWS_MAX_SEEN = 2;   // 같은 아침 뉴스는 한 판에 최대 2번까지

@@ -252,7 +252,7 @@ function listingCard(L,inWatch){
 function screenListings(){
   const committed=S.action==='realty';
   app.innerHTML=`${hud()}
-    <h2 class="sh">🏠 임장 가는 날</h2>
+    <h2 class="sh">${ic('realty',24)} 임장 가는 날</h2>
     <div class="summary">
       <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
       <div><div class="lab">남은 임장</div><div class="val">${S.visits}번</div></div>
@@ -274,7 +274,7 @@ function screenListings(){
 function screenAssets(){
   const watch=S.watch.filter(w=>!S.listings.includes(w.L)||S.action!=='realty');
   app.innerHTML=`${hud()}
-    <h2 class="sh">🏘 내 자산</h2>
+    <h2 class="sh">${ic('house',24)} 내 자산</h2>
     <div class="summary">
       <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
       <div><div class="lab">부동산 지분</div><div class="val">${won(reEquity())}</div></div>

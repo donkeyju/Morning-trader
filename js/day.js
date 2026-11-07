@@ -14,10 +14,10 @@ function screenTitle(){
     <canvas id="sc" class="pix" width="160" height="80"></canvas>
     <div class="box rules"><ul style="margin:0;padding-left:18px">
       <li>매일 아침 <b>뉴스 5개</b>를 읽고, 오늘 <b>한 가지</b>만 골라요</li>
-      <li>📈 <b>주식장</b>: 2종목을 골라 1분 동안 사고팔기</li>
-      <li>🏠 <b>임장</b>: 동네와 집 안을 보고 집 사기 (순자산 3,000만 또는 DAY 7부터)</li>
-      <li>🏪 <b>편의점</b>: 계산 알바에서 시작해 물류 담당자, 점장으로 승진</li>
-      <li>안 쓴 현금은 자동으로 <b>적금</b>, 🎟 복권은 하루 2장까지</li>
+      <li>${ic('stock')} <b>주식장</b>: 2종목을 골라 1분 동안 사고팔기</li>
+      <li>${ic('realty')} <b>임장</b>: 동네와 집 안을 보고 집 사기 (순자산 3,000만 또는 DAY 7부터)</li>
+      <li>${ic('job')} <b>편의점</b>: 계산 알바에서 시작해 물류 담당자, 점장으로 승진</li>
+      <li>안 쓴 현금은 자동으로 <b>적금</b>, ${ic('ticket')} 복권은 하루 2장까지</li>
       <li><b>30일 안에 순자산 1억</b> 만들기</li>
     </ul></div>
     ${best?`<div class="small">내 최고 기록: DAY ${best.days} 만에 ${won(best.money)}</div>`:''}
@@ -141,18 +141,18 @@ function screenHub(){
   // 모든 카드는 "제목 + 두 줄"로 같은 높이 (잠긴 임장은 둘째 줄이 진행 바)
   const reP=clamp(netWorth()/UNLOCK_RE,0,1)*100;
   const acts=[
-    {k:'stock', open:true, icon:'📈', prog:inv.need?dots(S.inv.good,inv.need):'',
-     title:'주식장 가기', l1:`${inv.icon} ${lvName(INV_TIERS,S.inv.tier)}${inv.need?'':' · 공매도 가능'}`,
+    {k:'stock', open:true, prog:inv.need?dots(S.inv.good,inv.need):'',
+     title:'주식장 가기', l1:`${ic(inv.icon)} ${lvName(INV_TIERS,S.inv.tier)}${inv.need?'':' · 공매도 가능'}`,
      l2:inv.need?`다음: ${lvName(INV_TIERS,S.inv.tier+1)}`:'2종목을 골라 1분 동안 매매'},
-    {k:'job', open:true, icon:car.icon, prog:dots(S.career.good,car.need),
+    {k:'job', open:true, prog:dots(S.career.good,car.need),
      title:`편의점 ${lvName(CAREER,S.career.stage)}`, l1:`일당 ${won(car.pay[0])}~${won(car.pay[1])}`,
      l2:`다음: ${S.career.stage<CAREER.length-1?lvName(CAREER,S.career.stage+1):'가게 인수 제안'}`},
-    {k:'realty', open:S.reUnlocked, icon:'🏠', prog:'', title:'임장 가기',
-     l1:S.reUnlocked?'오늘 매물 4개 중 2곳 둘러보기':`🔒 3,000만 원 또는 DAY ${UNLOCK_DAY}`,
+    {k:'realty', open:S.reUnlocked, prog:'', title:'임장 가기',
+     l1:S.reUnlocked?'오늘 매물 4개 중 2곳 둘러보기':`${ic('lock')} 3,000만 원 또는 DAY ${UNLOCK_DAY}`,
      l2:S.reUnlocked?'마음에 들면 바로 매입':`<div class="prog mini"><i style="width:${reP}%"></i><span>3,000만까지 ${reP.toFixed(0)}% · ${UNLOCK_DAY-S.day}일 남음</span></div>`},
   ].sort((a,b)=>b.open-a.open);
   app.innerHTML=`${hud()}
-    ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:var(--pix);font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
+    ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:var(--pix);font-size:18px">${ic('party',24)} ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
     <h2 class="sh">오늘 뭐 할까?</h2>
     <div class="small" style="text-align:left">하루에 하나만 할 수 있어요. 쓰지 않은 현금 <b style="color:var(--ink)">${won(S.cash)}</b>은 자동으로 적금에 들어가요 (하루 ${(saveRate()*100).toFixed(2)}%).</div>
     ${acts.map(a=>`<button class="actc" data-act="${a.k}" ${a.open?'':'disabled'}>
@@ -176,22 +176,22 @@ function screenHub(){
   document.getElementById('news').onclick=showNewsSheet;
 }
 
-// 📊 리포트: 지금까지의 기록 (게임 중 언제든)
+// 리포트: 지금까지의 기록 (게임 중 언제든)
 function screenReport(){
   const H=S.history, first=START_MONEY, now=netWorth(), gain=now-first;
-  const actIcon={stock:'📈',realty:'🏠',job:'🏪'};
+  const actIcon={stock:'stock',realty:'realty',job:'job'};
   app.innerHTML=`${hud()}
-    <h2 class="sh">📊 지금까지의 기록</h2>
+    <h2 class="sh">${ic('report',24)} 지금까지의 기록</h2>
     <div class="summary">
       <div><div class="lab">지난 날</div><div class="val">${H.length}일</div></div>
       <div><div class="lab">번 돈</div><div class="val ${cls(gain)}">${won(gain,true)}</div></div>
       <div><div class="lab">1억까지</div><div class="val">${(clamp(now/GOAL,0,1)*100).toFixed(0)}%</div></div>
     </div>
-    <div class="box" style="font-size:14px;line-height:1.8">${CAREER[S.career.stage].icon} 편의점 ${lvName(CAREER,S.career.stage)}<br>${INV_TIERS[S.inv.tier].icon} 주식 ${lvName(INV_TIERS,S.inv.tier)}<br>🏠 집 ${S.props.length}채</div>
+    <div class="box" style="font-size:14px;line-height:1.8">${ic(CAREER[S.career.stage].icon)} 편의점 ${lvName(CAREER,S.career.stage)}<br>${ic(INV_TIERS[S.inv.tier].icon)} 주식 ${lvName(INV_TIERS,S.inv.tier)}<br>${ic('house')} 집 ${S.props.length}채</div>
     ${reportHTML()}
     <h3 class="sub">하루하루</h3>
     <div class="box timeline">${H.slice().reverse().map(h=>{const d=h.net-(H[H.indexOf(h)-1]?.net??first);
-      return `<div class="tl"><span class="px">DAY ${h.day}</span><span>${actIcon[h.act]||'☕'}</span><b class="${cls(d)}">${won(d,true)}</b><span class="tln">${won(h.net)}</span></div>`;}).join('')}</div>
+      return `<div class="tl"><span class="px">DAY ${h.day}</span><span>${ic(actIcon[h.act]||'coffee')}</span><b class="${cls(d)}">${won(d,true)}</b><span class="tln">${won(h.net)}</span></div>`;}).join('')}</div>
     <button class="btn sec" id="back">← 돌아가기</button>`;
   drawReport();
   document.getElementById('back').onclick=()=>{beep(660);screenHub();};
@@ -203,7 +203,7 @@ function screenReport(){
    ========================================================= */
 // 받침에 따라 '로/으로' 붙이기 (받침 없거나 ㄹ이면 '로')
 const withRo=w=>{const c=w.charCodeAt(w.length-1)-0xAC00, jong=c>=0&&c<11172?c%28:0; return w+(jong===0||jong===8?'로':'으로');};
-const ACT_NAME={stock:'📈 주식장',realty:'🏠 임장',get job(){return `${careerNow().icon} 편의점 ${careerNow().title}`;}};
+const ACT_NAME={get stock(){return ic('stock')+' 주식장';},get realty(){return ic('realty')+' 임장';},get job(){return `${ic(careerNow().icon)} 편의점 ${careerNow().title}`;}};
 function finishDay(result){
   const r=dayRng(3), td=S.today;
   const invest=S.action==='stock'?S.cash*S.investPct/100:0, save=S.cash-invest, interest=save*saveRate();
@@ -244,7 +244,7 @@ function finishDay(result){
   S.cash=save+interest+stockEnd+S.jobPay+lottoWin+rentIn-loanOut+soldCash;
   while(S.cash<0&&S.props.length){   // 현금이 마이너스면 대출 많은 집부터 경매 (시세 80%, 즉시)
     const p=S.props.slice().sort((a,b)=>b.loan-a.loan)[0];
-    S.cash+=p.value*.8-p.loan; S.props.splice(S.props.indexOf(p),1); logs.push(`⚠ 이자를 못 내서 ${propName(p)} 경매 처분!`);
+    S.cash+=p.value*.8-p.loan; S.props.splice(S.props.indexOf(p),1); logs.push(`${ic('warn')} 이자를 못 내서 ${propName(p)} 경매 처분!`);
   }
   S.watch=S.watch.filter(w=>w.until>S.day);   // 관심 매물 기한
 
@@ -256,13 +256,23 @@ function finishDay(result){
   // ── 승진 / 등급 ──  (좋은 근무·좋은 장을 누적으로 세다가 need에 닿으면 다음 단계)
   const promo=[];
   if(S.action==='job'&&S.jobGood){ const c=S.career; c.good++;
-    if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push(`🎉 ${CAREER[c.stage].icon} ${withRo(lvName(CAREER,c.stage))} 승진! 일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`); }
-    else if(c.stage===CAREER.length-1&&c.good===CAREER[c.stage].need) promo.push('🤝 사장님: "자네한테 이 가게를 넘겨줄까 하는데…" (인수는 다음 업데이트!)'); }
+    if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push({art:CAREER[c.stage].art, head:'승진!', title:`${withRo(lvName(CAREER,c.stage))} 승진`, sub:`일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`}); }
+    else if(c.stage===CAREER.length-1&&c.good===CAREER[c.stage].need) promo.push({art:'P_key', head:'인수 제안', title:'사장님: "자네한테 이 가게를 넘겨줄까 하는데…"', sub:'가게 인수는 다음 업데이트에서 열려요'}); }
   const invested=result?result.reduce((a,x)=>a+(x.end-x.pl),0):0;   // 오늘 주식에 넣은 돈 (끝난 돈 − 손익)
   if(S.action==='stock'&&result&&invested>0&&tradePL/invested>=INV_GOOD){ const v=S.inv, t=INV_TIERS[v.tier];
-    if(t.need){ v.good++; if(v.good>=t.need){ v.tier++; v.good=0; promo.push(`🎉 ${INV_TIERS[v.tier].icon} ${lvName(INV_TIERS,v.tier)} 등극! 이제 공매도로 떨어지는 종목에도 돈을 걸 수 있어요`); } } }
-  if(promo.length){ setTimeout(()=>{beep(1046,.1);setTimeout(()=>beep(1318,.1),120);setTimeout(()=>beep(1568,.25),240);},400); }
+    if(t.need){ v.good++; if(v.good>=t.need){ v.tier++; v.good=0; promo.push({art:INV_TIERS[v.tier].art, head:'등급 상승!', title:`${lvName(INV_TIERS,v.tier)} 등극`, sub:'이제 공매도로 떨어지는 종목에도 돈을 걸 수 있어요'}); } } }
   screenDayEnd({H,dayPL,ch,net,result,logs,promo});
+}
+// 승진 알림 팝업: 큰 도트 그림(32x32 → 128px) + 제목. 여러 개면 [확인]을 누를 때마다 다음 것
+function showPromos(list){
+  const p=list[0]; if(!p) return;
+  const ov=document.createElement('div'); ov.className='promo-ov';
+  ov.innerHTML=`<div class="promo-card"><div class="ph">${p.head}</div>
+    <div class="pa">${ic(p.art,128)}</div><div class="pt">${p.title}</div><div class="ps">${p.sub}</div>
+    <button class="btn">확인</button></div>`;
+  document.body.appendChild(ov);
+  beep(1046,.1); setTimeout(()=>beep(1318,.1),120); setTimeout(()=>beep(1568,.25),240);
+  ov.querySelector('button').onclick=()=>{ beep(660); ov.remove(); showPromos(list.slice(1)); };
 }
 function screenDayEnd({H,dayPL,ch,net,result,logs,promo=[]}){
   const mood=ch>=.05?'happy':(ch<=-.03?'sad':'normal');
@@ -275,8 +285,7 @@ function screenDayEnd({H,dayPL,ch,net,result,logs,promo=[]}){
   startScene(document.getElementById('sc'),'evening',mood);
   const ov=document.createElement('div'); ov.className='modal'; ov.id='dayend';
   ov.innerHTML=`<div class="pop">
-    <div class="pophead"><span class="px">DAY ${S.day} 마감</span><span>${S.action?ACT_NAME[S.action]:'☕ 쉬는 날'}</span></div>
-    ${promo.map(m=>`<div class="promo">${m}</div>`).join('')}
+    <div class="pophead"><span class="px">DAY ${S.day} 마감</span><span>${S.action?ACT_NAME[S.action]:ic('coffee')+' 쉬는 날'}</span></div>
     <div class="res-big"><div class="pl ${cls(dayPL)}">${won(dayPL,true)}</div>
       <div class="${cls(dayPL)} px" style="font-size:14px">${pct(ch)}</div><div class="msg">${msg}</div></div>
     <div class="lines">
@@ -291,9 +300,10 @@ function screenDayEnd({H,dayPL,ch,net,result,logs,promo=[]}){
     <div class="prog"><i style="width:${progress*100}%"></i><span>1억까지 ${(progress*100).toFixed(1)}% · 순자산 ${won(net)}</span></div>
     <button class="linkbtn" id="why">오늘 뉴스 해설 보기 (${moodName})</button>
     <div class="paper reveal" id="whybox" style="display:none">${newsHTML(S.today.items,true)}</div>
-    <button class="btn" id="next">${done?'🏆 결과 보기':broke?'파산…':last?'30일 종료':'다음 날 →'}</button>
+    <button class="btn" id="next">${done?ic('trophy',24)+' 결과 보기':broke?'파산…':last?'30일 종료':'다음 날 →'}</button>
   </div>`;
   document.body.appendChild(ov);
+  if(promo.length) showPromos(promo);   // 승진·등급 상승은 마감 팝업 위에 따로 크게 띄움
   if(mood==='happy'){beep(784,.1);setTimeout(()=>beep(988,.1),120);setTimeout(()=>beep(1318,.2),240);} else if(mood==='sad'){beep(330,.2,'triangle');setTimeout(()=>beep(247,.3,'triangle'),220);}
   // 복권 긁기 연출: 한 장씩 뒤집힘
   S.lotto.forEach((tk,i)=>setTimeout(()=>{const el=ov.querySelector(`.tk[data-i="${i}"]`); if(!el)return;

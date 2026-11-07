@@ -9,7 +9,7 @@
 function screenPick(){
   S.picks=S.picks.slice(0,2);
   app.innerHTML=`${hud()}
-    <h2 class="sh">📈 오늘 투자할 2종목</h2>
+    <h2 class="sh">${ic('stock',24)} 오늘 투자할 2종목</h2>
     <div class="small" style="text-align:left">${invBadge()}</div>
     <div class="box alloc">
       <div class="lab">현금 ${won(S.cash)} 중 얼마를 투자할까?</div>
@@ -33,9 +33,9 @@ function screenPick(){
     document.getElementById('next').disabled=S.picks.length!==2||S.cash<10000;
     // 슈퍼개미부터: 종목마다 "오른다(매수) / 내린다(공매도)" 선택
     const box=document.getElementById('dirbox');
-    box.innerHTML=S.inv.tier>=1&&S.picks.length?`<div class="box"><div class="lab">🦸 방향 고르기 (공매도: 떨어지면 돈을 벌고, 오르면 손해)</div>${S.picks.map(k=>{const st=STOCKS.find(x=>x.k===k), d=S.dir[k]||1;
+    box.innerHTML=S.inv.tier>=1&&S.picks.length?`<div class="box"><div class="lab">${ic('superant')} 방향 고르기 (공매도: 떨어지면 돈을 벌고, 오르면 손해)</div>${S.picks.map(k=>{const st=STOCKS.find(x=>x.k===k), d=S.dir[k]||1;
       return `<div class="ord"><div class="ordt">${st.name}</div><div class="quick">
-        <button data-dir="${k}" data-v="1" class="${d>0?'on':''}">📈 오른다 (매수)</button><button data-dir="${k}" data-v="-1" class="${d<0?'on':''}">📉 내린다 (공매도)</button></div></div>`;}).join('')}</div>`:'';
+        <button data-dir="${k}" data-v="1" class="${d>0?'on':''}">${ic('up')} 오른다 (매수)</button><button data-dir="${k}" data-v="-1" class="${d<0?'on':''}">${ic('down')} 내린다 (공매도)</button></div></div>`;}).join('')}</div>`:'';
     box.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{S.dir[b.dataset.dir]=+b.dataset.v; beep(520,.04); refresh();});};
   app.querySelectorAll('.card').forEach(c=>c.onclick=()=>{const k=c.dataset.k;
     if(S.picks.includes(k)) S.picks=S.picks.filter(x=>x!==k); else { if(S.picks.length>=2) S.picks.shift(); S.picks.push(k);} beep(600,.04); refresh();});
@@ -146,7 +146,8 @@ function updTrade(){
     tab.classList.toggle('alert',i!==T.active&&s.alertUntil>T.tick);});
   const s=T.stocks[T.active], ch=s.price/s.open-1;
   document.getElementById('qn').textContent=s.name;
-  document.getElementById('qs').textContent=(s.dir<0?'📉 공매도 · ':'')+s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
+  const qs=document.getElementById('qs'), qh=(s.dir<0?ic('down')+' 공매도 · ':'')+s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
+  if(qs.dataset.h!==qh){ qs.innerHTML=qh; qs.dataset.h=qh; }   // 바뀔 때만 다시 그림 (아이콘이 매 틱 새로 그려지지 않게)
   document.getElementById('buy').textContent=enterName(s); document.getElementById('sell').textContent=exitName(s);
   document.getElementById('qp').innerHTML=`<span class="${cls(ch)}">${Math.round(s.price).toLocaleString()}<small>${pct(ch)}</small></span>`;
   const held=posVal(s)/Math.max(1,val(s));
@@ -189,13 +190,13 @@ function endTrade(){
   document.getElementById('buy').disabled=true; document.getElementById('sell').disabled=true;
   const cd=document.getElementById('cd'); cd.textContent='장 마감'; cd.style.fontSize='36px'; cd.style.fontFamily='var(--pix)';
   beep(523,.12);setTimeout(()=>beep(392,.2),150);
-  const result=T.stocks.map(s=>({name:(s.dir<0?'📉 ':'')+s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
+  const result=T.stocks.map(s=>({name:(s.dir<0?ic('down')+' ':'')+s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
   setTimeout(()=>{T=null;finishDay(result);},1400);
 }
 
-// 투자자 등급 표시: "🐜 개미 · 슈퍼개미까지 ●●○○"
+// 투자자 등급 표시: "(개미 아이콘) Lv.1 개미 · Lv.2 슈퍼개미까지 (체크 칸)"
 function invBadge(){
   const t=INV_TIERS[S.inv.tier], nx=INV_TIERS[S.inv.tier+1];
-  return `${t.icon} <b style="color:var(--ink)">${lvName(INV_TIERS,S.inv.tier)}</b>`+(t.need&&nx?` · ${nx.icon} ${lvName(INV_TIERS,S.inv.tier+1)}까지 <b class="stars">${dots(S.inv.good,t.need)}</b> (투자금의 +${INV_GOOD*100}% 이상 번 장 ${S.inv.good}/${t.need})`
+  return `${ic(t.icon)} <b style="color:var(--ink)">${lvName(INV_TIERS,S.inv.tier)}</b>`+(t.need&&nx?` · ${ic(nx.icon)} ${lvName(INV_TIERS,S.inv.tier+1)}까지 <b class="stars">${dots(S.inv.good,t.need)}</b> (투자금의 +${INV_GOOD*100}% 이상 번 장 ${S.inv.good}/${t.need})`
     :(S.inv.tier>=1?' · 공매도 사용 가능':''));
 }

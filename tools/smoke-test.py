@@ -82,6 +82,10 @@ async def main():
         await shot("8_shelf.png")
         await pg.wait_for_selector("#end", timeout=20000); await pg.click("#end"); await pg.wait_for_selector("#dayend")
         assert await pg.evaluate("S.career.stage")==2, "물류 담당자 3번째 좋은 근무 뒤 점장 승진이 안 됨"
+        # 승진하면 마감 팝업 위에 승진 알림 팝업이 뜸 → 찍고 [확인]
+        await pg.wait_for_selector(".promo-ov", timeout=3000); await pg.wait_for_timeout(500); await shot("8_promo.png")
+        await pg.click(".promo-ov button"); await pg.wait_for_timeout(100)
+        assert not await pg.query_selector(".promo-ov"), "승진 팝업이 안 닫힘"
         await pg.click("#next"); await pg.wait_for_timeout(200)
         # 점장 발주
         await pg.click("#next"); await pg.click('[data-act="job"]'); await pg.click("#go"); await pg.wait_for_timeout(200)
