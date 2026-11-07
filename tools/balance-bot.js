@@ -1,0 +1,68 @@
+/* =========================================================
+   밸런스 봇 — 게임 함수(startDay, genListing, findP, mktRent …)를 그대로 써서 30일을 자동으로 플레이
+   - skilled : 뉴스 영향(S.today.eff)을 정확히 앎. 좋은 매물(적정가/호가+집 안 점수)이 있으면 임장,
+               아니면 강한 호재 2종목 주식장(현금 75%), 블랙먼데이·약한 날엔 알바(만점 100만)
+   - average : 행동을 랜덤으로 고름. 주식 종목도 랜덤(현금 50%), 알바 60만, 복권 반반 확률로 2장
+   주의: 게임의 결산 로직(js/day.js finishDay, js/stock.js 가격식)을 바꾸면 이 파일의 같은 식도 맞춰서 고쳐야 함
+   사용: tools/run-balance.py 가 이 파일을 페이지에 넣고 runBot("skilled"|"average", 판수) 실행
+   ========================================================= */
+window.runBot=function(strategy,runs,opt={}){
+  const finals=[], hits=[], perRun=[];
+  screenNews=()=>{};
+  const sk=strategy==='skilled', JOB=opt.job??(sk?1000000:600000);
+  for(let run=0;run<runs;run++){
+    newRun(); S.seed=run*31+7; let hit=null; const my={stock:0,job:0,save:0,rent:0,loan:0,re:0,deal:0,lotto:0}, acts={stock:0,realty:0,job:0};
+    for(let d=1;d<=30;d++){
+      S.day=d; startDay(); const td=S.today, r=dayRng(2), rr=dayRng(9);
+      // 복권 (평범한 봇만, 반반 확률로 2장)
+      let lottoNet=0; if(!sk&&rr()<.5){ for(let i=0;i<2;i++){ S.cash-=50000; lottoNet-=50000; let x=rr(),acc=0; for(const [p,a] of LOTTO_TIERS){acc+=p; if(x<acc){S.cash+=a; lottoNet+=a; break;}} } }
+      // ── 오늘 행동 고르기
+      const top=STOCKS.slice().sort((a,b)=>td.eff[b.k]-td.eff[a.k]).slice(0,2);
+      const topEff=(td.eff[top[0].k]+td.eff[top[1].k])/2;
+      const score=L=>L.fair/L.ask+featScore(L.feat);
+      const afford=S.reUnlocked?S.listings.filter(L=>L.ask*(.3+RE_TAX)<=S.cash*.9):[];
+      let act;
+      if(sk){ const bestRe=afford.slice().sort((a,b)=>score(b)-score(a))[0];
+        if(bestRe&&score(bestRe)>(opt.reBar??1.08)) act='realty';
+        else if(td.mood!=='crash'&&topEff>(opt.stockBar??.2)) act='stock';
+        else act='job'; }
+      else { const opts=['stock','job']; if(S.reUnlocked) opts.push('realty'); act=opts[Math.floor(rr()*opts.length)]; }
+      acts[act]++;
+      let stockPL=0, invest=0, job=0;
+      if(act==='realty'){ let c=afford.slice(); if(sk) c.sort((a,b)=>score(b)-score(a)); else c=shuffle(c,rr);
+        for(const L of c.slice(0,sk?2:1)){ if(L.ask*(.3+RE_TAX)>S.cash*.9) continue; if(sk&&score(L)<1.0) continue; if(!sk&&rr()<.4) continue;
+          my.deal+=(L.fair-L.ask)-L.ask*RE_TAX; S.cash-=L.ask*(.3+RE_TAX); S.props.push({...L,value:L.fair,prevValue:L.fair,loan:L.ask*.7,paid:0,mult:1,tenant:null,sell:null}); } }
+      else if(act==='job') job=JOB;
+      else { invest=S.cash*(sk?.75:.5); const picks=sk?top:shuffle(STOCKS,r).slice(0,2);
+        const brk = r()<.30 ? {t:200+Math.floor(r()*200), i:Math.floor(r()*2), e:BREAKING[Math.floor(r()*BREAKING.length)].e} : null;
+        picks.forEach((s,i)=>{const v=VOL[s.v]; const budget=invest/2; if(sk&&td.eff[s.k]<0){return;}
+          let drift=clamp(td.eff[s.k],-1,1)*STOCK_TREND*v.t, p=S.prices[s.k], z=0;
+          const sh=budget*(1-FEE)/(p*(1+budget/v.mcap));
+          for(let k=1;k<=600;k++){ if(brk&&brk.t===k&&brk.i===i){drift=drift*.4+brk.e*.8; p*=Math.exp(brk.e*.03);}
+            z=.85*z+.527*gauss(r); p*=Math.exp(drift/600+v.n*Math.sqrt(1/600)*z*.33*STOCK_NOISE);
+            if(sk&&brk&&brk.i===i&&k===brk.t+5&&brk.e<0) break; }
+          const amt=sh*p; stockPL+=sh*p*(1-amt/v.mcap)*(1-FEE)-budget; S.prices[s.k]=p; }); }
+      const save=S.cash-invest, interest=save*saveRate();
+      let rentIn=0,loanOut=0;
+      for(const p of S.props){ loanOut+=p.loan*loanRate(); if(r()<findP(p,1)) rentIn+=mktRent(p); }
+      const before=reEquity();
+      for(const p of S.props) p.value*=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+      const reMove=reEquity()-before;
+      S.cash=save+interest+invest+stockPL+job+rentIn-loanOut;
+      while(S.cash<0&&S.props.length){const p=S.props.sort((a,b)=>b.loan-a.loan)[0]; S.cash+=p.value*.8-p.loan; S.props.splice(0,1);}
+      my.stock+=stockPL; my.job+=job; my.save+=interest; my.rent+=rentIn; my.loan-=loanOut; my.re+=reMove; my.lotto+=lottoNet;
+      if(!hit&&netWorth()>=GOAL) hit=d;
+      if(netWorth()<1e5) break;
+    }
+    finals.push(netWorth()); hits.push(hit); perRun.push({hit,my,acts});
+  }
+  finals.sort((a,b)=>a-b);
+  const q=x=>Math.round(finals[Math.floor(x*(finals.length-1))]/1e4)+'만';
+  const h=hits.filter(x=>x).sort((a,b)=>a-b);
+  const avgK=k=>Math.round(perRun.reduce((a,x)=>a+x.my[k],0)/runs/1e4);
+  const actAvg=k=>(perRun.reduce((a,x)=>a+x.acts[k],0)/runs).toFixed(1);
+  return `${strategy}: 하위10% ${q(.1)} / 중간 ${q(.5)} / 상위10% ${q(.9)} / 1억 ${h.length}/${runs}판`+(h.length?` (빠른 날 ${h[0]}, 중간 ${h[Math.floor(h.length/2)]})`:'')
+   +`\n    평균 기여(만): 주식 ${avgK('stock')} 알바 ${avgK('job')} 월세 ${avgK('rent')} 이자 ${avgK('loan')} 집값 ${avgK('re')} 매입차익 ${avgK('deal')} 적금 ${avgK('save')} 복권 ${avgK('lotto')}`
+   +`\n    행동 횟수: 주식 ${actAvg('stock')} 임장 ${actAvg('realty')} 알바 ${actAvg('job')}`;
+};
+window.featScore=f=>(f.sun?.05:0)+(f.remodel?.05:0)+(f.view?.04:0)-(f.leak?.06:0)-(f.mold?.04:0)-(f.crack?.08:0)-(f.pipe?.03:0);

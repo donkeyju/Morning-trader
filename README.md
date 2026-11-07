@@ -3,6 +3,8 @@
 매일 아침 가상 뉴스 5개를 읽고, 오늘 **한 가지**(주식장 / 임장 / 편의점 알바)를 골라서
 **30일 안에 순자산 1,000만 원 → 1억**을 만드는 도트 스타일 모바일 투자 게임이에요.
 
+▶ 플레이: https://donkeyju.github.io/Morning-trader/
+
 > ⚠️ 게임 속 뉴스·회사·지역은 모두 가상이에요. 실제 투자 조언이 아니에요.
 
 ## 하는 방법
@@ -23,31 +25,33 @@
 
 ## GitHub Pages로 배포하기 (무료)
 
-1. 이 저장소를 GitHub에 올려요
-2. 저장소 페이지에서 **Settings → Pages**로 들어가요
-3. **Source**를 `Deploy from a branch`, **Branch**를 `main` / `/ (root)`로 고르고 **Save**
-4. 1~2분 뒤 `https://<내 아이디>.github.io/<저장소 이름>/` 주소로 접속하면 게임이 열려요
+1. 저장소 페이지에서 **Settings → Pages**로 들어가요
+2. **Source**를 `Deploy from a branch`, **Branch**를 `main` / `/ (root)`로 고르고 **Save**
+3. 1~2분 뒤 `https://donkeyju.github.io/Morning-trader/` 로 접속하면 게임이 열려요
+4. 이후로는 `main`에 push할 때마다 자동으로 반영돼요
 
 ## 파일 구성
 
 ```
-index.html   게임 전체 (HTML + CSS + JavaScript 한 파일)
-.nojekyll    GitHub Pages가 파일을 그대로 보여주게 하는 빈 파일
-README.md    이 설명서
+index.html          화면 뼈대 + 파일 불러오기 (순서 중요)
+css/style.css       꾸미기
+js/data.js          설정값·종목·부동산·뉴스 데이터 (밸런스 숫자 대부분)
+js/core.js          랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공
+js/realty.js        부동산: 매물, 지도, 집 안, 임장, 내 자산
+js/stock.js         주식장: 종목 고르기, 1분 미니게임
+js/job.js           편의점 알바
+js/day.js           하루 흐름: 타이틀, 뉴스, 오늘 뭐 할까, 마감 팝업, 종료 리포트
+tools/              밸런스 봇·자동 테스트
+CLAUDE.md           Claude용 작업 안내서 (구조, 숫자의 이유, 작업 규칙)
 ```
 
-`index.html` 안의 코드는 번호가 붙은 구역으로 나뉘어 있어요.
+## 테스트 도구
 
-| 구역 | 내용 |
-|---|---|
-| 1~4 | 기본 설정값, 주식 종목, 부동산, 뉴스 데이터 |
-| 5~8 | 랜덤, 숫자 표시, 효과음, 게임 상태 |
-| 9~11 | 도트 장면, 타이틀, 아침 뉴스 뽑기 |
-| 12 | 부동산 (매물 생성, 지도, 집 안, 임장, 내 자산) |
-| 13~14 | 오늘 뭐 할까(하루 1행동), 주식 종목 고르기 |
-| 15 | 1분 주식 미니게임 |
-| 16 | 저녁 결산 + 하루 마감 팝업 |
-| 17~18 | 종료 리포트, 편의점 알바 |
+```bash
+pip install playwright && python -m playwright install chromium
+python tools/smoke-test.py      # 버튼을 눌러가며 전체 흐름 확인 + 스크린샷
+python tools/run-balance.py     # 봇 200판씩 돌려서 1억 달성률 확인
+```
 
 ## 밸런스 (봇 시뮬레이션 200판)
 
