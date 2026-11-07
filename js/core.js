@@ -44,7 +44,8 @@ function newRun(){
 }
 // 금리: 하나의 기준금리에 적금·대출이 같이 묶여 있다
 const saveRate=()=>S.base;
-const loanRate=()=>S.base+LOAN_SPREAD;
+const loanRate=(ltv=.3)=>S.base+(LTV_SPREAD[ltv]??LOAN_SPREAD);   // 대출 비율별 금리
+const propRate=p=>loanRate(p.ltv??.7);                          // 내 집의 대출 금리
 // 부동산 계산
 const mktRent=p=>p.value*REG[p.r].yieldT[p.t]*(1+.2*p.loc)*featRent(p.feat)*S.rentLv[p.r]*S.rentTypeLv[p.t];
 function findP(p,mult){ // 오늘 저녁 세입자를 구할 확률

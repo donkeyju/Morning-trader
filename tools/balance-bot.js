@@ -39,7 +39,7 @@ window.runBot=function(strategy,runs,opt={}){
       let stockPL=0, invest=0, job=0;
       if(act==='realty'){ let c=afford.slice(); if(smart) c.sort((a,b)=>score(b)-score(a)); else c=shuffle(c,rr);
         for(const L of c.slice(0,smart?2:1)){ if(L.ask*(.3+RE_TAX)>S.cash*.9) continue; if(smart&&score(L)<1.0) continue; if(!smart&&rr()<.4) continue;
-          my.deal+=(L.fair-L.ask)-L.ask*RE_TAX; S.cash-=L.ask*(.3+RE_TAX); S.props.push({...L,value:L.fair,prevValue:L.fair,loan:L.ask*.7,paid:0,mult:1,tenant:null,sell:null}); } }
+          my.deal-=L.ask*RE_TAX; S.cash-=L.ask*(.3+RE_TAX); S.props.push({...L,value:L.ask,prevValue:L.ask,fairV:L.fair,ltv:.7,loan:L.ask*.7,paid:0,mult:1,tenant:null,sell:null}); } }
       else if(act==='job'){ const st=S.career.stage, [lo,hi]=CAREER[st].pay;
         const q=smart?(opt.jobSkill??.9):(.2+rr()*.6); job=Math.round(lo+(hi-lo)*q);
         const good=smart?true:q>.55;
@@ -59,9 +59,10 @@ window.runBot=function(strategy,runs,opt={}){
         if(invest>0&&stockPL/invest>=INV_GOOD&&INV_TIERS[S.inv.tier].need){ S.inv.good++; if(S.inv.good>=INV_TIERS[S.inv.tier].need){S.inv.tier++; S.inv.good=0;} } }
       const save=S.cash-invest, interest=save*saveRate();
       let rentIn=0,loanOut=0;
-      for(const p of S.props){ loanOut+=p.loan*loanRate(); if(r()<findP(p,1)) rentIn+=mktRent(p); }
+      for(const p of S.props){ loanOut+=p.loan*propRate(p); if(r()<findP(p,1)) rentIn+=mktRent(p); }
       const before=reEquity();
-      for(const p of S.props) p.value*=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+      for(const p of S.props){ const g=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+        p.value*=g; p.fairV*=g; p.value+=(p.fairV-p.value)*RE_CONVERGE; }
       const reMove=reEquity()-before;
       S.cash=save+interest+invest+stockPL+job+rentIn-loanOut;
       while(S.cash<0&&S.props.length){const p=S.props.sort((a,b)=>b.loan-a.loan)[0]; S.cash+=p.value*.8-p.loan; S.props.splice(0,1);}

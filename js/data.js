@@ -11,7 +11,10 @@ const TICKS = 600, TICK_MS = window.FAST_TEST ? 8 : 100;  // 1분 = 0.1초 × 60
 const FEE = 0.0015;
 const STOCK_TREND = 0.5;          // 뉴스가 만드는 1분 추세의 세기
 const STOCK_NOISE = 1.4;          // 랜덤 흔들림 배율 (추세와 같이 키워서 '해석하기 나름'은 유지)                // 주식 수수료 0.15%
-const LOAN_SPREAD = 0.0015;        // 대출금리 = 기준금리 + 0.15%p
+const LOAN_SPREAD = 0.0015;        // (기본값) 대출금리 = 기준금리 + 0.15%p
+// 많이 빌릴수록 비싼 대출: 대출 비율별 가산금리 (하루 기준). 70%를 껴도 무조건 이득이 되지 않게
+const LTV_SPREAD = {0:0, 0.3:0.0015, 0.5:0.0025, 0.7:0.004};
+const RE_CONVERGE = 0.15;          // 산 집의 시세는 '산 가격'에서 시작해 매일 적정가 쪽으로 15%씩 다가감 (바로 차익 못 내게)
 const RE_TAX = 0.01;               // 부동산 살 때·팔 때 비용 1%
 const CONTRACT_DAYS = 5;           // 세입자 계약 기간
 

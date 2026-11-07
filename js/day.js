@@ -177,7 +177,7 @@ function finishDay(result){
   let rentIn=0, loanOut=0, soldCash=0; const logs=[];
   for(const p of S.props.slice()){
     const nm=propName(p);
-    loanOut+=p.loan*loanRate();                          // 공실이어도 이자는 나감
+    loanOut+=p.loan*propRate(p);                         // 공실이어도 이자는 나감 (대출 비율별 금리)
     if(p.tenant){ rentIn+=p.tenant.rent; p.tenant.days--;
       if(p.tenant.days<=0){p.tenant=null; logs.push(`${nm}: 계약 만료 → 내일부터 공실`);} }
     else if(r()<findP(p,p.mult)){ p.tenant={rent:mktRent(p)*p.mult, days:CONTRACT_DAYS-1}; rentIn+=p.tenant.rent;
@@ -190,7 +190,9 @@ function finishDay(result){
   const reBefore=reEquity();
   for(const p of S.props){
     p.prevValue=p.value;
-    p.value*=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+    const g=Math.exp(clamp(td.reEff[p.r]+td.reTypeEff[p.t],-1,1)*.03 + REG[p.r].drift + .002*p.loc + featGrowth(p.feat) + REG[p.r].vol*gauss(r));
+    p.value*=g; p.fairV=(p.fairV??p.value)*g;          // 적정가도 같이 움직이고
+    p.value+=(p.fairV-p.value)*RE_CONVERGE;               // 시세는 적정가 쪽으로 조금씩 다가감 (싸게 샀으면 며칠에 걸쳐 오름)
   }
   for(const k in S.rentLv) S.rentLv[k]=clamp(S.rentLv[k]*(1+td.rentEff[k]*.15)+(1-S.rentLv[k])*.05,.6,1.6);
   for(const k in S.rentTypeLv) S.rentTypeLv[k]=clamp(S.rentTypeLv[k]*(1+td.rentTypeEff[k]*.15)+(1-S.rentTypeLv[k])*.05,.6,1.6);

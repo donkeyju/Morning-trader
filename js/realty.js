@@ -34,7 +34,9 @@ function genListing(rng,n,force){
   const base=R.base*TYPES[t].k*SIZES[sz].k;          // 이 지역·유형·크기의 보통 가격
   const fair=base*(1+.3*loc);                         // 입지를 반영한 적정가
   const ask=Math.round(fair*(1+(rng()-.5)*.3)/1e5)*1e5; // 집주인이 부르는 값 (적정가 ±15%, 하자는 모름)
-  return {id:`D${S.day}-${n}`, r, t, sz, fac, cat, loc, feat, base, fair, ask, seed:Math.floor(rng()*1e9), visited:false};
+  const seed=Math.floor(rng()*1e9);
+  const recent=Math.round(fair*(1+(rng()-.5)*.2)/1e5)*1e5; // 최근 실거래가: 적정가 ±10% 흔들린 참고값 (진짜 가치는 직접 판단)
+  return {id:`D${S.day}-${n}`, r, t, sz, fac, cat, loc, feat, base, fair, ask, recent, seed, visited:false};
 }
 
 /* ---------- 12-2. 도트 지도 ---------- */
@@ -216,7 +218,7 @@ function visitSummary(L){const good=FEATS.filter(([k,,,g])=>g>0&&L.feat[k]).leng
 
 /* ---------- 12-4. 부동산: 임장 하는 날 ---------- */
 function ownedCard(p,i){
-  const eq=p.value-p.loan, mr=mktRent(p), interest=p.loan*loanRate(), chg=p.prevValue?p.value/p.prevValue-1:0;
+  const eq=p.value-p.loan, mr=mktRent(p), interest=p.loan*propRate(p), chg=p.prevValue?p.value/p.prevValue-1:0;
   const st=p.tenant
     ? `<div class="st ok">세입자 있음 · 월세 하루 ${won(p.tenant.rent)} · 계약 ${p.tenant.days}일 남음</div>`
     : `<div class="st vac">공실 · 오늘 저녁 세입자 구할 확률 ${Math.round(findP(p,p.mult)*100)}%</div>`;
@@ -240,7 +242,7 @@ function ownedCard(p,i){
 function listingCard(L,inWatch){
   return `<div class="re">
     <div class="top"><span class="nm">${propName(L)}</span><span class="tag" style="background:${L.visited?'#3f7a5c':'#3a3260'}">${inWatch?`D-${S.watch.find(w=>w.L===L).until-S.day}`:(L.visited?'임장 완료':AREA[L.t][L.sz]+'평')}</span></div>
-    <div class="kv"><span>호가 <b>${won(L.ask)}</b></span><span>보통 시세 <b>${won(L.base)}</b></span>
+    <div class="kv"><span>호가 <b>${won(L.ask)}</b></span><span>최근 실거래가 <b>${won(L.recent)}</b></span>
       <span>보통 월세 <b>하루 ${(REG[L.r].yieldT[L.t]*100).toFixed(2)}%</b></span><span>팔리는 속도 <b>${'●'.repeat(Math.max(1,Math.round(REG[L.r].liq[L.t]*5)))}</b></span></div>
     <div class="act"><span class="need">${L.visited?(S.hints?visitSummary(L):'임장 완료'):`오늘 남은 임장 <b>${S.visits}번</b>`}</span>
       <button class="btn ${L.visited?'sec':''} sm" data-visit="${L.id}" ${(!L.visited&&S.visits<=0)?'disabled':''}>${L.visited?'다시 보기':'임장 가기'}</button></div>
@@ -254,7 +256,7 @@ function screenListings(){
     <div class="summary">
       <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
       <div><div class="lab">남은 임장</div><div class="val">${S.visits}번</div></div>
-      <div><div class="lab">대출 금리</div><div class="val">${(loanRate()*100).toFixed(2)}%</div></div>
+      <div><div class="lab">대출 금리 (30~70%)</div><div class="val">${(loanRate(.3)*100).toFixed(2)}~${(loanRate(.7)*100).toFixed(2)}%</div></div>
     </div>
     <div class="small" style="text-align:left">둘러본 매물은 3일 동안 "관심 매물"로 남아서, 다른 날에도 <b style="color:var(--ink)">내 자산</b>에서 살 수 있어요.</div>
     ${S.listings.map(L=>listingCard(L,false)).join('')||'<div class="small">오늘은 매물이 없어요</div>'}
@@ -276,7 +278,7 @@ function screenAssets(){
     <div class="summary">
       <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
       <div><div class="lab">부동산 지분</div><div class="val">${won(reEquity())}</div></div>
-      <div><div class="lab">대출 금리</div><div class="val">${(loanRate()*100).toFixed(2)}%</div></div>
+      <div><div class="lab">대출 금리 (30~70%)</div><div class="val">${(loanRate(.3)*100).toFixed(2)}~${(loanRate(.7)*100).toFixed(2)}%</div></div>
     </div>
     ${S.props.length?`<h3 class="sub">내 부동산</h3>${S.props.map(ownedCard).join('')}`:''}
     ${watch.length?`<h3 class="sub">관심 매물 (둘러본 집, 3일간)</h3>${watch.map(w=>listingCard(w.L,true)).join('')}`:''}
@@ -298,7 +300,7 @@ function buyHTML(L){
   const ltv=S.ltvSel[L.id]??.7, need=L.ask*(1-ltv)+L.ask*RE_TAX, ok=S.cash>=need;
   return `<div class="lbl">대출 비율</div>
     <div class="quick">${[0,.3,.5,.7].map(v=>`<button data-ltv="${L.id}" data-v="${v}" class="${ltv===v?'on':''}">${Math.round(v*100)}%</button>`).join('')}</div>
-    <div class="act"><span class="need">필요 현금 <b>${won(need)}</b> · 대출 <b>${won(L.ask*ltv)}</b></span>
+    <div class="act"><span class="need">필요 현금 <b>${won(need)}</b> · 대출 <b>${won(L.ask*ltv)}</b>${ltv?`<br>이자 하루 <b>${won(L.ask*ltv*loanRate(ltv))}</b> (금리 ${(loanRate(ltv)*100).toFixed(2)}%)`:''}</span>
       <button class="btn sm" data-buy="${L.id}" ${ok?'':'disabled'}>매입</button></div>`;
 }
 function bindBuy(rerender){
@@ -308,7 +310,8 @@ function bindBuy(rerender){
     if(S.cash<need)return; S.cash-=need;
     if(S.listings.includes(L)) S.action='realty';
     // 산 순간부터 "시세"는 적정가로 보인다 → 비싸게 샀는지 싸게 샀는지 드러남
-    S.props.push({...L, value:L.fair, prevValue:L.fair, loan:L.ask*ltv, paid:need, mult:1, tenant:null, sell:null, bought:S.day});
+    // 시세는 산 가격에서 시작 → 매일 적정가 쪽으로 다가감 (싸게 샀으면 며칠에 걸쳐 오르고, 비싸게 샀으면 내려감)
+    S.props.push({...L, value:L.ask, prevValue:L.ask, fairV:L.fair, ltv, loan:L.ask*ltv, paid:need, mult:1, tenant:null, sell:null, bought:S.day});
     S.listings=S.listings.filter(x=>x!==L); S.watch=S.watch.filter(w=>w.L!==L);
     beep(988,.06);beep(1318,.1);buzz(30); rerender();});
 }
@@ -317,7 +320,7 @@ function screenVisit(L,from){
   const owned=S.props.includes(L), canBuy=!owned&&!!findListing(L.id);
   app.innerHTML=`${hud()}
     <h2 class="sh">${owned?'내 집 둘러보기':'임장'} · ${propName(L)}</h2>
-    <div class="small" style="text-align:left">${AREA[L.t][L.sz]}평 · ${owned?`시세 <b>${won(L.value)}</b>`:`호가 <b>${won(L.ask)}</b> (보통 시세 ${won(L.base)})`}</div>
+    <div class="small" style="text-align:left">${AREA[L.t][L.sz]}평 · ${owned?`시세 <b>${won(L.value)}</b>`:`호가 <b>${won(L.ask)}</b> (최근 실거래가 ${won(L.recent)})`}</div>
     <h3 class="sub">동네 지도</h3>
     <canvas id="map" class="pix" width="160" height="110"></canvas>
     ${legendHTML()}

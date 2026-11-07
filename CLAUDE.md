@@ -21,8 +21,8 @@
 |---|---|---|
 | `index.html` | 뼈대, 폰트, 스크립트 불러오기 | |
 | `css/style.css` | 모든 스타일. 색은 맨 위 `:root` 변수 | |
-| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `LOCAL_NEWS` `STOCK_NEWS` `REALTY_NEWS` `CRASH_NEWS` `MOODS` `BREAKING` |
-| `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
+| `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `LTV_SPREAD` `RE_CONVERGE` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `LOCAL_NEWS` `STOCK_NEWS` `REALTY_NEWS` `CRASH_NEWS` `MOODS` `BREAKING` |
+| `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate(ltv)` `propRate(p)` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
 | `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots` `startShop` |
@@ -59,15 +59,17 @@
 ## 밸런스 목표와 현재 값
 **밸런스 숫자를 바꾸면 반드시 `python tools/run-balance.py`로 다시 재고, 결과를 사용자에게 숫자로 알려줄 것.**
 
-| 봇 | 목표 | 현재 (v0.5, 200판) |
+| 봇 | 목표 | 현재 (v0.6.1, 200판) |
 |---|---|---|
-| 투자형 봇 skilled (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | **82%** (약간 높음, 공매도 때문), 보통 DAY 24 |
-| 섞기 봇 hybrid | 투자형과 비슷 | 82.5%, 보통 DAY 25 |
+| 투자형 봇 skilled (뉴스 영향을 정확히 앎) | 1억 달성 70~80% | **66.5%** (약간 낮음), 보통 DAY 25, 중간값 1.13억 |
+| 섞기 봇 hybrid | 투자형과 비슷 | 57.5%, 보통 DAY 27 |
 | 사업형 봇 biz (편의점만) | 사장 단계 전엔 1억 미만 | 중간값 5,552만 (점장 도달 100%) |
-| 평범한 봇 average (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,674만, 하위10% 1,809만 |
+| 평범한 봇 average (랜덤) | 중간값 2~4천만, 1억 0% | 중간값 2,631만, 하위10% 1,789만 |
 
-- 투자형 봇 행동: 주식 19.5일 / 임장 9일 / 편의점 1.6일. 수익원: 월세 > 주식 > 매입 차익 > 집값
-- 사장/펀드매니저 단계를 넣을 때 투자형 82%를 70~80%로 다시 맞출 것
+- 투자형 봇 행동: 주식 20.2일 / 임장 8.3일 / 편의점 1.5일
+- 투자형 수익원: 부동산 5,692만(52%: 월세 5,162 − 이자 1,911 + 집값 2,706 − 세금 265) / 주식 5,117만(47%)
+- 사용자 의도: 부동산과 주식이 비슷한 비중 (v0.6에선 부동산 59% vs 주식 40%이라 조정함)
+- 투자형 66.5%는 일부러 그대로 둠: 다음 단계(사장 / 펀드매니저)에서 자동 수입이 생기면 오를 것 → 그때 70~80%로 맞출 것
 
 ### 숫자가 이렇게 된 이유 (바꾸기 전에 읽기)
 - `STOCK_TREND 0.5` / `STOCK_NOISE 1.4`: v0.3에서 완벽한 봇도 1억 0%여서 올림. 둘을 같이 올려서 "해석하기 나름"은 유지.
@@ -76,7 +78,10 @@
 - 팔릴 확률(`REG.liq`): "집이 안 팔린다"는 피드백으로 ×1.5, 급매 보정 ×2.0.
 - 집값 뉴스 계수 `.03`(finishDay): 처음 .12였을 때 레버리지로 하루 지분 +20%가 나와서 줄임.
 - 지역 기본 상승률: 서울 +0.12% / 수도권 +0.04% / 지방 −0.12% → "서울은 시세 차익, 지방은 월세" 성격.
-- 대출 금리 = 기준금리 + 0.15%p: 대출 받아 적금 넣는 허점 방지.
+- 대출 금리 = 기준금리 + 대출 비율별 가산금리(`LTV_SPREAD`: 30% +0.15%p, 50% +0.25%p, 70% +0.40%p): 사용자가 "대출금리가 너무 낮다"고 함.
+  예전(+0.15%p 고정)엔 어떤 집이든 월세가 이자의 2~4배라 대출 70%가 무조건 정답이었음. 대출이 적금보다 항상 비싸야 "대출 받아 적금" 허점도 없음.
+- 매물 카드의 "보통 시세" → **"최근 실거래가"(적정가 ±10% 흔들린 참고값)**: 사용자가 "호가랑 시세가 너무 잘 보여서 바로 시세차익 내기가 쉽다"고 함.
+- 산 집의 시세는 **산 가격(호가)에서 시작해 매일 적정가 쪽으로 15%씩 다가감**(`RE_CONVERGE`, 집마다 `fairV`가 적정가를 따라 움직임). 예전엔 사는 순간 시세=적정가라 싸게 산 만큼 그날 바로 순자산에 잡혔음(공짜 돈). 이제 그 이득은 며칠에 걸쳐 "집값 변동"으로 들어옴.
 - 알바 일당 30~100만(실력제): 고정 100만이면 알바만 해도 위험 없이 3,000만 → 초반 정답이 알바가 돼버림.
 - 복권: 0.01%로 6천만만 있으면 30일 60장에도 당첨 0.6% → 등수를 4단계로 나눠 작은 당첨이 가끔 나오게.
 - 공매도 수수료 `SHORT_FEE 0.5%`: 공매도가 생기며 투자형이 84%로 올라서 넣음(효과는 작음, 84→82%). 슈퍼개미 조건 `need 4`.
