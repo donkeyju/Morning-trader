@@ -9,13 +9,13 @@
 function screenTitle(){
   const best=loadBest();
   app.innerHTML=`
-    <div class="title-logo"><div class="en px">MORNING TRADER</div><div class="ko dh">모닝 트레이더</div></div>
+    <div class="title-logo"><div class="big dh">1억</div><div class="ko dh">30일 안에 1,000만 원을 1억으로</div></div>
     <canvas id="sc" class="pix" width="160" height="80"></canvas>
     <div class="box rules"><ul style="margin:0;padding-left:18px">
       <li>매일 아침 <b>뉴스 5개</b>를 읽고, 오늘 <b>한 가지</b>만 골라요</li>
       <li>📈 <b>주식장</b>: 2종목을 골라 1분 동안 사고팔기</li>
       <li>🏠 <b>임장</b>: 동네와 집 안을 보고 집 사기 (순자산 3,000만 또는 DAY 7부터)</li>
-      <li>🧾 <b>편의점 알바</b>: 30초 계산 알바로 일당 30~100만 원</li>
+      <li>🏪 <b>편의점</b>: 계산 알바에서 시작해 물류 담당자, 점장으로 승진</li>
       <li>안 쓴 현금은 자동으로 <b>적금</b>, 🎟 복권은 하루 2장까지</li>
       <li><b>30일 안에 순자산 1억</b> 만들기</li>
     </ul></div>
@@ -130,24 +130,32 @@ const LOTTO_TIERS=[[.0001,60000000,'1등'],[.001,5000000,'2등'],[.01,500000,'3�
 function screenHub(){
   const watchN=S.watch.length, propN=S.props.length, inv=INV_TIERS[S.inv.tier], car=careerNow();
   // 행동 카드: 할 수 있는 것 먼저, 잠긴 것은 아래로
+  // 모든 카드는 "제목 + 두 줄"로 같은 높이 (잠긴 임장은 둘째 줄이 진행 바)
+  const reP=clamp(netWorth()/UNLOCK_RE,0,1)*100;
   const acts=[
-    {k:'stock', open:true, html:`<span class="ai">📈</span><span><b>주식장 가기</b><small>${inv.icon} ${lvName(INV_TIERS,S.inv.tier)}${inv.need?` · ${lvName(INV_TIERS,S.inv.tier+1)}까지 ${dots(S.inv.good,inv.need)}`:' · 공매도 가능'}</small></span>`},
-    {k:'realty', open:S.reUnlocked, html:`<span class="ai">🏠</span><span><b>임장 가기</b>
-      <small>${S.reUnlocked?'오늘 매물 4개 중 2곳 둘러보고 사기':`🔒 순자산 3,000만 원 또는 DAY ${UNLOCK_DAY}에 열려요 (${UNLOCK_DAY-S.day}일 남음)`}</small></span>`,
-      after:S.reUnlocked?'':`<div class="prog" style="margin-top:-6px"><i style="width:${clamp(netWorth()/UNLOCK_RE,0,1)*100}%"></i><span>3,000만까지 ${(clamp(netWorth()/UNLOCK_RE,0,1)*100).toFixed(0)}%</span></div>`},
-    {k:'job', open:true, html:`<span class="ai">${car.icon}</span><span><b>편의점 ${lvName(CAREER,S.career.stage)}</b><small>일당 ${won(car.pay[0])}~${won(car.pay[1])} · ${S.career.stage<CAREER.length-1?`${lvName(CAREER,S.career.stage+1)}까지`:'인수 제안까지'} ${dots(S.career.good,car.need)}</small></span>`},
+    {k:'stock', open:true, icon:'📈', prog:inv.need?dots(S.inv.good,inv.need):'',
+     title:'주식장 가기', l1:`${inv.icon} ${lvName(INV_TIERS,S.inv.tier)}${inv.need?'':' · 공매도 가능'}`,
+     l2:inv.need?`다음: ${lvName(INV_TIERS,S.inv.tier+1)}`:'2종목을 골라 1분 동안 매매'},
+    {k:'job', open:true, icon:car.icon, prog:dots(S.career.good,car.need),
+     title:`편의점 ${lvName(CAREER,S.career.stage)}`, l1:`일당 ${won(car.pay[0])}~${won(car.pay[1])}`,
+     l2:`다음: ${S.career.stage<CAREER.length-1?lvName(CAREER,S.career.stage+1):'가게 인수 제안'}`},
+    {k:'realty', open:S.reUnlocked, icon:'🏠', prog:'', title:'임장 가기',
+     l1:S.reUnlocked?'오늘 매물 4개 중 2곳 둘러보기':`🔒 3,000만 원 또는 DAY ${UNLOCK_DAY}`,
+     l2:S.reUnlocked?'마음에 들면 바로 매입':`<div class="prog mini"><i style="width:${reP}%"></i><span>3,000만까지 ${reP.toFixed(0)}% · ${UNLOCK_DAY-S.day}일 남음</span></div>`},
   ].sort((a,b)=>b.open-a.open);
   app.innerHTML=`${hud()}
     ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:'Do Hyeon';font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
     <h2 class="sh">오늘 뭐 할까?</h2>
     <div class="small" style="text-align:left">하루에 하나만 할 수 있어요. 쓰지 않은 현금 <b style="color:var(--ink)">${won(S.cash)}</b>은 자동으로 적금에 들어가요 (하루 ${(saveRate()*100).toFixed(2)}%).</div>
-    ${acts.map(a=>`<button class="actc" data-act="${a.k}" ${a.open?'':'disabled'}>${a.html}</button>${a.after||''}`).join('')}
+    ${acts.map(a=>`<button class="actc" data-act="${a.k}" ${a.open?'':'disabled'}>
+      <span class="al"><span class="ai">${a.icon}</span><span class="ad">${a.prog}</span></span>
+      <span class="ar"><b>${a.title}</b><small>${a.l1}</small>${a.l2.startsWith('<')?a.l2:`<small>${a.l2}</small>`}</span></button>`).join('')}
     <h3 class="sub">언제든 할 수 있어요 <span style="font-size:13px;color:var(--dim)">(하루 행동을 쓰지 않아요)</span></h3>
     <div class="side">
-      <button class="sidec" id="lotto"><b>🎟 복권</b><small>장당 5만 · 오늘 ${S.lotto.length}/${LOTTO_MAX}장</small></button>
-      <button class="sidec" id="assets" ${propN||watchN?'':'disabled'}><b>🏘 내 자산</b><small>집 ${propN}채 · 관심 매물 ${watchN}</small></button>
-      <button class="sidec" id="report" ${S.history.length?'':'disabled'}><b>📊 리포트</b><small>지금까지 기록</small></button>
-      <button class="sidec" id="news"><b>📰 뉴스</b><small>다시 보기</small></button>
+      <button class="sidec" id="lotto"><b>복권</b><small>장당 5만 · 오늘 ${S.lotto.length}/${LOTTO_MAX}장</small></button>
+      <button class="sidec" id="assets" ${propN||watchN?'':'disabled'}><b>내 자산</b><small>집 ${propN}채 · 관심 매물 ${watchN}</small></button>
+      <button class="sidec" id="report" ${S.history.length?'':'disabled'}><b>리포트</b><small>지금까지 기록</small></button>
+      <button class="sidec" id="news"><b>뉴스</b><small>다시 보기</small></button>
     </div>`;
   app.querySelectorAll('.actc').forEach(b=>b.onclick=()=>{beep(880); S.reJust=false; const a=b.dataset.act;
     if(a==='stock') screenPick(); else if(a==='realty') screenListings(); else screenJob();});

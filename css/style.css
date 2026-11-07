@@ -20,7 +20,8 @@ canvas.pix{width:100%;image-rendering:pixelated;image-rendering:crisp-edges;disp
 .hud b{color:var(--ink);font-size:16px}
 .title-logo{text-align:center;margin-top:8px}
 .title-logo .en{font-size:30px;color:var(--gold);text-shadow:3px 3px 0 var(--line);letter-spacing:1px}
-.title-logo .ko{font-size:22px;margin-top:2px}
+.title-logo .ko{font-size:18px;margin-top:2px;color:var(--dim)}
+.title-logo .big{font-size:76px;line-height:1;color:var(--gold);text-shadow:5px 5px 0 var(--line)}
 .rules{font-size:14px;line-height:1.7}
 .paper{background:var(--paper);color:var(--paperInk);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px 14px}
 .paper .mast{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px double var(--paperInk);padding-bottom:6px;margin-bottom:6px}
@@ -128,10 +129,15 @@ canvas.ico{width:20px;height:20px;image-rendering:pixelated}
 .rrow b{font-size:14px;text-align:right}
 .rbar{height:10px;background:#120f22;border:2px solid var(--line)}.rbar i{display:block;height:100%}
 .sw{display:inline-block;width:10px;height:10px;border:1px solid var(--line)}
-.actc{display:flex;align-items:center;gap:12px;text-align:left;background:var(--panel);color:var(--ink);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px 14px;font-family:"Nanum Gothic"}
+.actc{display:grid;grid-template-columns:76px 1fr;align-items:center;gap:8px;height:112px;text-align:left;background:var(--panel);color:var(--ink);border:3px solid var(--line);box-shadow:4px 4px 0 var(--line);padding:12px 14px;font-family:"Nanum Gothic"}
 .actc:active{transform:translateY(3px);box-shadow:1px 1px 0 var(--line)}
 .actc:disabled{opacity:.55}
-.actc .ai{font-size:30px}
+.actc .ai{font-size:30px;line-height:1}
+.actc .al{display:flex;flex-direction:column;align-items:center;gap:6px}
+.actc .ad{font-size:11px;letter-spacing:-1px;white-space:nowrap;min-height:14px}
+.actc .ar{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.actc .ar small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog.mini{height:16px;margin-top:4px;border-width:2px}.prog.mini span{line-height:10px;font-size:10px}
 .actc b{display:block;font-family:"Do Hyeon";font-weight:400;font-size:21px}
 .actc small{display:block;font-size:13px;color:var(--dim);margin-top:2px}
 .side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
