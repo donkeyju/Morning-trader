@@ -6,7 +6,10 @@
    ========================================================= */
 let J=null;
 const careerNow=()=>CAREER[S.career.stage];
-const dots=(n,need)=>'●'.repeat(Math.min(n,need))+'○'.repeat(Math.max(0,need-n));
+// 승진 진행 표시: 채운 칸 ✅, 남은 칸 ⬜
+const dots=(n,need)=>'✅'.repeat(Math.min(n,need))+'⬜'.repeat(Math.max(0,need-n));
+// 단계 이름: "Lv.2 물류 담당자"
+const lvName=(list,i)=>`Lv.${i+1} ${list[i].title}`;
 // 일당 계산: 단계별로 성적(0~1)을 일당 범위에 맞춤
 const payOf=(stage,score)=>{const [lo,hi]=CAREER[stage].pay; return Math.round((lo+(hi-lo)*clamp(score,0,1))/10000)*10000;};
 
@@ -26,11 +29,11 @@ function screenJob(){
   ][st];
   const max=st>=CAREER.length-1&&S.career.good>=c.need;
   app.innerHTML=`${hud()}
-    <h2 class="sh">${c.icon} 편의점 ${c.title}</h2>
+    <h2 class="sh">${c.icon} 편의점 ${lvName(CAREER,st)}</h2>
     <canvas id="shop" class="pix" width="160" height="72"></canvas>
     <div class="box rules"><ul style="margin:0;padding-left:18px">${rules.map(x=>`<li>${x}</li>`).join('')}</ul></div>
     <div class="box" style="font-size:14px">${max?'🤝 사장님이 <b>가게를 넘겨줄까?</b> 하셨어요. 인수는 다음 업데이트에서 열려요!'
-      :`승진까지 <b class="stars">${dots(S.career.good,c.need)}</b> (좋은 근무 ${S.career.good}/${c.need})${st<CAREER.length-1?` → ${CAREER[st+1].icon} ${CAREER[st+1].title}`:' → 🤝 가게 인수 제안'}`}</div>
+      :`승진까지 <b class="stars">${dots(S.career.good,c.need)}</b> (좋은 근무 ${S.career.good}/${c.need})${st<CAREER.length-1?` → ${CAREER[st+1].icon} ${lvName(CAREER,st+1)}`:' → 🤝 가게 인수 제안'}`}</div>
     <button class="btn sec" id="back">← 다른 걸 할래요</button>
     <button class="btn" id="go">출근하기!</button>`;
   startShop(document.getElementById('shop'));

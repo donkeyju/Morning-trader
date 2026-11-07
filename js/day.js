@@ -128,21 +128,25 @@ function showNewsSheet(){
 const LOTTO_PRICE=50000, LOTTO_MAX=2;
 const LOTTO_TIERS=[[.0001,60000000,'1등'],[.001,5000000,'2등'],[.01,500000,'3등'],[.05,50000,'4등']]; // [확률, 당첨금, 이름]
 function screenHub(){
-  const lockRe=!S.reUnlocked;
-  const watchN=S.watch.length, propN=S.props.length;
+  const watchN=S.watch.length, propN=S.props.length, inv=INV_TIERS[S.inv.tier], car=careerNow();
+  // 행동 카드: 할 수 있는 것 먼저, 잠긴 것은 아래로
+  const acts=[
+    {k:'stock', open:true, html:`<span class="ai">📈</span><span><b>주식장 가기</b><small>${inv.icon} ${lvName(INV_TIERS,S.inv.tier)}${inv.need?` · ${lvName(INV_TIERS,S.inv.tier+1)}까지 ${dots(S.inv.good,inv.need)}`:' · 공매도 가능'}</small></span>`},
+    {k:'realty', open:S.reUnlocked, html:`<span class="ai">🏠</span><span><b>임장 가기</b>
+      <small>${S.reUnlocked?'오늘 매물 4개 중 2곳 둘러보고 사기':`🔒 순자산 3,000만 원 또는 DAY ${UNLOCK_DAY}에 열려요 (${UNLOCK_DAY-S.day}일 남음)`}</small></span>`,
+      after:S.reUnlocked?'':`<div class="prog" style="margin-top:-6px"><i style="width:${clamp(netWorth()/UNLOCK_RE,0,1)*100}%"></i><span>3,000만까지 ${(clamp(netWorth()/UNLOCK_RE,0,1)*100).toFixed(0)}%</span></div>`},
+    {k:'job', open:true, html:`<span class="ai">${car.icon}</span><span><b>편의점 ${lvName(CAREER,S.career.stage)}</b><small>일당 ${won(car.pay[0])}~${won(car.pay[1])} · ${S.career.stage<CAREER.length-1?`${lvName(CAREER,S.career.stage+1)}까지`:'인수 제안까지'} ${dots(S.career.good,car.need)}</small></span>`},
+  ].sort((a,b)=>b.open-a.open);
   app.innerHTML=`${hud()}
     ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:'Do Hyeon';font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
     <h2 class="sh">오늘 뭐 할까?</h2>
     <div class="small" style="text-align:left">하루에 하나만 할 수 있어요. 쓰지 않은 현금 <b style="color:var(--ink)">${won(S.cash)}</b>은 자동으로 적금에 들어가요 (하루 ${(saveRate()*100).toFixed(2)}%).</div>
-    <button class="actc" data-act="stock"><span class="ai">📈</span><span><b>주식장 가기</b><small>${INV_TIERS[S.inv.tier].icon} ${INV_TIERS[S.inv.tier].title}${INV_TIERS[S.inv.tier].need?` · ${INV_TIERS[S.inv.tier+1].title}까지 ${dots(S.inv.good,INV_TIERS[S.inv.tier].need)}`:' · 공매도 가능'}</small></span></button>
-    <button class="actc" data-act="realty" ${lockRe?'disabled':''}><span class="ai">🏠</span><span><b>임장 가기</b>
-      <small>${lockRe?`🔒 순자산 3,000만 원 또는 DAY ${UNLOCK_DAY}에 열려요 (${UNLOCK_DAY-S.day}일 남음)`:'오늘 매물 4개 중 2곳 둘러보고 사기'}</small></span></button>
-    ${lockRe?`<div class="prog" style="margin-top:-6px"><i style="width:${clamp(netWorth()/UNLOCK_RE,0,1)*100}%"></i><span>3,000만까지 ${(clamp(netWorth()/UNLOCK_RE,0,1)*100).toFixed(0)}%</span></div>`:''}
-    <button class="actc" data-act="job"><span class="ai">${careerNow().icon}</span><span><b>편의점 ${careerNow().title}</b><small>일당 ${won(careerNow().pay[0])}~${won(careerNow().pay[1])} · ${S.career.stage<CAREER.length-1?`${CAREER[S.career.stage+1].title}까지`:'인수 제안까지'} ${dots(S.career.good,careerNow().need)}</small></span></button>
-    <h3 class="sub">행동을 쓰지 않는 것들</h3>
+    ${acts.map(a=>`<button class="actc" data-act="${a.k}" ${a.open?'':'disabled'}>${a.html}</button>${a.after||''}`).join('')}
+    <h3 class="sub">언제든 할 수 있어요 <span style="font-size:13px;color:var(--dim)">(하루 행동을 쓰지 않아요)</span></h3>
     <div class="side">
       <button class="sidec" id="lotto"><b>🎟 복권</b><small>장당 5만 · 오늘 ${S.lotto.length}/${LOTTO_MAX}장</small></button>
       <button class="sidec" id="assets" ${propN||watchN?'':'disabled'}><b>🏘 내 자산</b><small>집 ${propN}채 · 관심 매물 ${watchN}</small></button>
+      <button class="sidec" id="report" ${S.history.length?'':'disabled'}><b>📊 리포트</b><small>지금까지 기록</small></button>
       <button class="sidec" id="news"><b>📰 뉴스</b><small>다시 보기</small></button>
     </div>`;
   app.querySelectorAll('.actc').forEach(b=>b.onclick=()=>{beep(880); S.reJust=false; const a=b.dataset.act;
@@ -151,7 +155,29 @@ function screenHub(){
     if(S.lotto.length>=LOTTO_MAX){beep(200,.08);return;} if(S.cash<LOTTO_PRICE){beep(200,.08);return;}
     S.cash-=LOTTO_PRICE; S.lottoCost+=LOTTO_PRICE; S.lotto.push({}); beep(1046,.05);beep(1318,.07); screenHub();};
   document.getElementById('assets').onclick=()=>{beep(660);screenAssets();};
+  document.getElementById('report').onclick=()=>{beep(660);screenReport();};
   document.getElementById('news').onclick=showNewsSheet;
+}
+
+// 📊 리포트: 지금까지의 기록 (게임 중 언제든)
+function screenReport(){
+  const H=S.history, first=START_MONEY, now=netWorth(), gain=now-first;
+  const actIcon={stock:'📈',realty:'🏠',job:'🏪'};
+  app.innerHTML=`${hud()}
+    <h2 class="sh">📊 지금까지의 기록</h2>
+    <div class="summary">
+      <div><div class="lab">지난 날</div><div class="val">${H.length}일</div></div>
+      <div><div class="lab">번 돈</div><div class="val ${cls(gain)}">${won(gain,true)}</div></div>
+      <div><div class="lab">1억까지</div><div class="val">${(clamp(now/GOAL,0,1)*100).toFixed(0)}%</div></div>
+    </div>
+    <div class="box" style="font-size:14px;line-height:1.8">${CAREER[S.career.stage].icon} 편의점 ${lvName(CAREER,S.career.stage)}<br>${INV_TIERS[S.inv.tier].icon} 주식 ${lvName(INV_TIERS,S.inv.tier)}<br>🏠 집 ${S.props.length}채</div>
+    ${reportHTML()}
+    <h3 class="sub">하루하루</h3>
+    <div class="box timeline">${H.slice().reverse().map(h=>{const d=h.net-(H[H.indexOf(h)-1]?.net??first);
+      return `<div class="tl"><span class="px">DAY ${h.day}</span><span>${actIcon[h.act]||'☕'}</span><b class="${cls(d)}">${won(d,true)}</b><span class="tln">${won(h.net)}</span></div>`;}).join('')}</div>
+    <button class="btn sec" id="back">← 돌아가기</button>`;
+  drawReport();
+  document.getElementById('back').onclick=()=>{beep(660);screenHub();};
 }
 
 
@@ -213,11 +239,11 @@ function finishDay(result){
   // ── 승진 / 등급 ──  (좋은 근무·좋은 장을 누적으로 세다가 need에 닿으면 다음 단계)
   const promo=[];
   if(S.action==='job'&&S.jobGood){ const c=S.career; c.good++;
-    if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push(`🎉 ${CAREER[c.stage].icon} ${withRo(CAREER[c.stage].title)} 승진! 일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`); }
+    if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push(`🎉 ${CAREER[c.stage].icon} ${withRo(lvName(CAREER,c.stage))} 승진! 일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`); }
     else if(c.stage===CAREER.length-1&&c.good===CAREER[c.stage].need) promo.push('🤝 사장님: "자네한테 이 가게를 넘겨줄까 하는데…" (인수는 다음 업데이트!)'); }
   const invested=result?result.reduce((a,x)=>a+(x.end-x.pl),0):0;   // 오늘 주식에 넣은 돈 (끝난 돈 − 손익)
   if(S.action==='stock'&&result&&invested>0&&tradePL/invested>=INV_GOOD){ const v=S.inv, t=INV_TIERS[v.tier];
-    if(t.need){ v.good++; if(v.good>=t.need){ v.tier++; v.good=0; promo.push(`🎉 ${INV_TIERS[v.tier].icon} ${INV_TIERS[v.tier].title} 등극! 이제 공매도로 떨어지는 종목에도 돈을 걸 수 있어요`); } } }
+    if(t.need){ v.good++; if(v.good>=t.need){ v.tier++; v.good=0; promo.push(`🎉 ${INV_TIERS[v.tier].icon} ${lvName(INV_TIERS,v.tier)} 등극! 이제 공매도로 떨어지는 종목에도 돈을 걸 수 있어요`); } } }
   if(promo.length){ setTimeout(()=>{beep(1046,.1);setTimeout(()=>beep(1318,.1),120);setTimeout(()=>beep(1568,.25),240);},400); }
   screenDayEnd({H,dayPL,ch,net,result,logs,promo});
 }
@@ -281,12 +307,13 @@ function screenEnd(kind){
 /* =========================================================
    17. 종료 화면 리포트: 어디서 벌고 잃었나
    ========================================================= */
-const CAT_STYLE=[['stock','주식','#ff5a5f'],['job','알바','#ff9f43'],['rent','월세','#ffd166'],['re','집값 변동','#4ea8ff'],['save','적금 이자','#5ad19a'],
-                 ['loan','대출 이자','#a07cf0'],['deal','집 사고판 차익·세금','#c9c2a8'],['lotto','복권','#ff6fb5']];
+const CAT_STYLE=[['stock','주식','#ff5a5f'],['job','편의점','#ff9f43'],['rent','월세','#ffd166'],['re','집값 변동','#4ea8ff'],['save','적금 이자','#5ad19a'],
+                 ['loan','대출 이자','#a07cf0'],['deal','집 매매·세금','#c9c2a8'],['lotto','복권','#ff6fb5']];
 function reportHTML(){
   const tot=Object.fromEntries(CAT_STYLE.map(([k])=>[k,S.history.reduce((a,h)=>a+h[k],0)]));
   const mx=Math.max(1,...Object.values(tot).map(Math.abs));
-  const rows=CAT_STYLE.slice().sort((a,b)=>Math.abs(tot[b[0]])-Math.abs(tot[a[0]])).map(([k,n,c])=>
+  const used=CAT_STYLE.filter(([k])=>Math.abs(tot[k])>=1);   // 한 번도 안 생긴 항목은 숨김
+  const rows=used.slice().sort((a,b)=>Math.abs(tot[b[0]])-Math.abs(tot[a[0]])).map(([k,n,c])=>
     `<div class="rrow"><span class="sw" style="background:${c}"></span><span class="rn">${n}</span>
       <span class="rbar"><i style="width:${Math.abs(tot[k])/mx*100}%;background:${c};opacity:${tot[k]<0?.45:1}"></i></span>
       <b class="${cls(tot[k])}">${won(tot[k],true)}</b></div>`).join('');
@@ -294,7 +321,7 @@ function reportHTML(){
     <h3 class="sub">순자산 흐름</h3><canvas id="nc" class="pix" width="240" height="110"></canvas>
     <div class="legend"><span><i class="sw" style="background:#fff"></i>순자산</span><span><i class="sw" style="background:#ffd166"></i>목표 1억</span>${S.unlockDay?'<span><i class="sw" style="background:#a07cf0"></i>부동산 오픈</span>':''}</div>
     <h3 class="sub">하루하루 손익 (항목별)</h3><canvas id="dc" class="pix" width="240" height="110"></canvas>
-    <div class="legend">${CAT_STYLE.map(([k,n,c])=>`<span><i class="sw" style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+    <div class="legend">${used.map(([k,n,c])=>`<span><i class="sw" style="background:${c}"></i>${n}</span>`).join('')}</div>`;
 }
 function drawReport(){
   const H=S.history; if(!H.length) return;

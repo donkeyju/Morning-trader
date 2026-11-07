@@ -196,6 +196,6 @@ function endTrade(){
 // 투자자 등급 표시: "🐜 개미 · 슈퍼개미까지 ●●○○"
 function invBadge(){
   const t=INV_TIERS[S.inv.tier], nx=INV_TIERS[S.inv.tier+1];
-  return `${t.icon} <b style="color:var(--ink)">${t.title}</b>`+(t.need&&nx?` · ${nx.icon} ${nx.title}까지 <b class="stars">${dots(S.inv.good,t.need)}</b> (투자금의 +${INV_GOOD*100}% 이상 번 장 ${S.inv.good}/${t.need})`
+  return `${t.icon} <b style="color:var(--ink)">${lvName(INV_TIERS,S.inv.tier)}</b>`+(t.need&&nx?` · ${nx.icon} ${lvName(INV_TIERS,S.inv.tier+1)}까지 <b class="stars">${dots(S.inv.good,t.need)}</b> (투자금의 +${INV_GOOD*100}% 이상 번 장 ${S.inv.good}/${t.need})`
     :(S.inv.tier>=1?' · 공매도 사용 가능':''));
 }

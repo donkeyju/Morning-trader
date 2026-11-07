@@ -25,8 +25,8 @@
 | `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate(ltv)` `propRate(p)` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
-| `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots` `startShop` |
-| `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
+| `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots`(✅⬜ 진행 표시) `lvName`("Lv.2 물류 담당자") `startShop` |
+| `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `screenReport`(게임 중 리포트) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
 | `tools/balance-bot.js` | 밸런스 봇 (게임 함수를 써서 30일 자동 플레이) | `runBot("skilled"/"average", 판수)` |
 | `tools/run-balance.py` | 봇 실행기 | |
 | `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 | |
@@ -47,6 +47,21 @@
 - 직함 표기: "물류 담당자"(편의점엔 팀이 없음 — 사용자 지적). 조사는 `withRo()`로 자동.
 - 사장/펀드매니저는 "출근 안 해도 기본 수입 + 출근하면 보너스" (사용자 합의)
 - `finishDay`의 하루 기록(`S.history`) 항목: stock, job, save, rent, loan, re, lotto, deal(나머지 = 집 사고판 차익·세금). 새 수입원을 넣으면 **여기와 `CAT_STYLE`(day.js), 마감 팝업 줄**에 같이 추가.
+
+## 뉴스 데이터 구조 (사용자가 물어봄)
+뉴스 한 개에 **모든 영향이 같이** 적혀 있음. 편의점용·주식용으로 따로 관리하지 않음 (`js/data.js`).
+```js
+{ src:'날씨와생활', h:'기록적 폭염…', b:'본문', e:{energy:.3, food:.25}, cvs:{ice:.6, hot:-.3} }
+```
+- 주식 `e`(섹터별) `mkt`(시장 전체) / 부동산 `re` `reType` `reAll` `rent` `rentType` / 금리 `rate` / 편의점 `cvs`(ice·hot·health·snack) / `rumor`(찌라시: 50% 거짓이면 반대로 −0.4배)
+- 따로 관리하는 건 셋뿐: `CRASH_NEWS`(블랙먼데이 힌트), `BREAKING`(1분 장 속보), `LOCAL_NEWS`(점장 전용 동네 소식)
+- 나중에 실제 뉴스 API를 붙이면 기사마다 이 칸들을 채우면 됨 (AI로 영향 값 붙이기)
+
+## 화면 규칙 (사용자 피드백)
+- 승진·등급 진행은 **✅⬜** 체크 표시 (●○는 글자 맞추기 같다고 함). 단계 이름은 **"Lv.1 개미", "Lv.2 슈퍼개미"**처럼 `lvName()`.
+- "오늘 뭐 할까"는 **지금 할 수 있는 행동이 위, 잠긴 행동은 아래**.
+- 행동을 쓰지 않는 메뉴 이름은 **"언제든 할 수 있어요"** (예전 "행동을 쓰지 않는 것들"은 이상하다고 함). 복권 / 내 자산 / 📊 리포트 / 뉴스.
+- 리포트(`screenReport`)와 종료 리포트는 `reportHTML`·`drawReport` 공유. 한 번도 안 생긴 항목은 숨김.
 
 ## 설계 원칙 (사용자와 합의)
 1. **하루에 행동은 하나.** 신경 쓸 게 많으면 하루가 숙제가 됨 (사용자 피드백으로 v0.5에서 바꿈). 새 기능은 "탭 한 번"이거나 기존 칸을 대신하게.

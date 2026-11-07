@@ -134,7 +134,7 @@ canvas.ico{width:20px;height:20px;image-rendering:pixelated}
 .actc .ai{font-size:30px}
 .actc b{display:block;font-family:"Do Hyeon";font-weight:400;font-size:21px}
 .actc small{display:block;font-size:13px;color:var(--dim);margin-top:2px}
-.side{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sidec{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:8px 4px;text-align:center;font-family:"Nanum Gothic"}
 .sidec:disabled{opacity:.5}
 .sidec b{display:block;font-family:"Do Hyeon";font-weight:400;font-size:16px}
@@ -171,3 +171,8 @@ canvas.ico{width:20px;height:20px;image-rendering:pixelated}
 .exp.w{background:#ffe9a8}.exp.x{background:#d7263d;color:#fff}
 .ord{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .ord .ordt{font-family:"Do Hyeon";font-size:17px}
+.timeline{padding:6px 12px}
+.tl{display:grid;grid-template-columns:70px 26px 1fr auto;gap:6px;align-items:center;font-size:14px;padding:5px 0;border-bottom:1px dashed #3a3260}
+.tl:last-child{border-bottom:none}
+.tl b{text-align:right}.tl .tln{color:var(--dim);font-size:12px;min-width:70px;text-align:right}
+.summary .val.up{color:var(--up)}.summary .val.down{color:var(--down)}
