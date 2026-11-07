@@ -69,7 +69,7 @@ function runJob(){
     <canvas id="shop" class="pix" width="160" height="72"></canvas>
     <div class="paper" id="receipt" style="padding:8px 12px"></div>
     <div class="box" style="padding:8px 12px">
-      <div class="hud"><span>건넬 거스름돈</span><b id="giv" class="px" style="font-size:20px">0</b></div>
+      <div class="hud"><span>건넬 거스름돈</span><b id="giv" class="px" style="font-size:24px">0</b></div>
       <div class="money">${MONEY.map(m=>`<button data-m="${m}" class="${m>=1000?'bill':'coin'}">${m.toLocaleString()}</button>`).join('')}</div>
     </div>
     <div class="btns"><button class="btn sec" id="undo">하나 빼기</button><button class="btn" id="give">건네기</button></div>
@@ -152,7 +152,7 @@ function runOrder(){
   const render=()=>{
     app.innerHTML=`${hud()}
       <h2 class="sh">👔 오늘의 발주</h2>
-      <div class="paper"><div class="mast"><span class="name" style="font-size:20px">동네 소식</span><span class="date">점장 전용</span></div>
+      <div class="paper"><div class="mast"><span class="name" style="font-size:18px">동네 소식</span><span class="date">점장 전용</span></div>
         ${local.map(n=>`<div class="news"><h3>📌 ${n.h}</h3></div>`).join('')}</div>
       <div class="small" style="text-align:left">아침 뉴스도 같이 생각해 보세요. 날씨, 유행, 경기가 손님을 바꿔요.</div>
       ${CVS_CATS.map(c=>`<div class="box ord"><div class="ordt">${c.icon} ${c.name}</div>

@@ -187,7 +187,7 @@ function endTrade(){
   // 장 마감: 남은 주식은 한꺼번에 팔림 (전량이라 밀림도 큼!)
   T.stocks.forEach(s=>{ if(s.shares>0) sellCore(s,s.shares); S.prices[s.k]=s.price; });
   document.getElementById('buy').disabled=true; document.getElementById('sell').disabled=true;
-  const cd=document.getElementById('cd'); cd.textContent='장 마감'; cd.style.fontSize='34px'; cd.style.fontFamily='Do Hyeon';
+  const cd=document.getElementById('cd'); cd.textContent='장 마감'; cd.style.fontSize='36px'; cd.style.fontFamily='var(--pix)';
   beep(523,.12);setTimeout(()=>beep(392,.2),150);
   const result=T.stocks.map(s=>({name:(s.dir<0?'📉 ':'')+s.name,chg:s.price/s.open-1,pl:s.cash-s.budget,end:s.cash,slip:s.slipCost}));
   setTimeout(()=>{T=null;finishDay(result);},1400);

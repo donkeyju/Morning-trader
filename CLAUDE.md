@@ -18,7 +18,7 @@
 
 ## 파일 구조
 빌드 도구 없이 브라우저에서 바로 돌아가요. 모든 함수와 상수는 **전역**이라 파일끼리 그냥 서로 불러 써요.
-`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → logo → day (day.js 마지막 줄에서 게임 시작).
+`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → logo → icons → day (day.js 마지막 줄에서 게임 시작).
 
 | 파일 | 내용 | 주요 함수·상수 |
 |---|---|---|
@@ -31,6 +31,8 @@
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
 | `js/job.js` | 편의점 커리어 | `screenJob`(단계별 출근) `runJob`(계산) `runShelf`(물류) `runOrder`·`orderDemand`(점장 발주) `endShift`(퇴근 공통) `payOf` `dots`(✅⬜ 진행 표시) `lvName`("Lv.2 물류 담당자") `startShop` |
 | `js/logo.js` | 타이틀 도트 로고 | `LOGO_GLYPH`(5x7 도트 글꼴) `logoText` `drawLogo` `startLogo`(움직임, 화면 바뀌면 멈춤) |
+| `js/icons.js` | 행동 카드 도트 아이콘 16x16 (A안 물건형) | `ICONS`(stock·job·realty) `drawPixIcon` `paintIcons(부모)` — `<canvas class="pi" data-ic="stock">` |
+| `fonts/` | 한글 도트 폰트 갈무리11 Bold (OFL, 라이선스 파일 같이) | |
 | `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `screenReport`(게임 중 리포트) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
 | `tools/balance-bot.js` | 밸런스 봇 (게임 함수를 써서 30일 자동 플레이) | `runBot("skilled"/"average", 판수)` |
 | `tools/run-balance.py` | 봇 실행기 | |
@@ -75,6 +77,8 @@
 - "오늘 뭐 할까"는 **지금 할 수 있는 행동이 위, 잠긴 행동은 아래**.
 - 행동 카드는 **모두 같은 높이**(제목 + 두 줄). 왼쪽 칸: 아이콘 + 그 아래 ✅⬜(글자 양과 상관없이 위치 고정). 잠긴 임장은 둘째 줄이 진행 바(카드 안).
 - 행동을 쓰지 않는 메뉴 이름은 **"언제든 할 수 있어요"** (예전 "행동을 쓰지 않는 것들"은 이상하다고 함). 복권 / 내 자산 / 리포트 / 뉴스 — **버튼 안에 이모지 아이콘 넣지 않기**.
+- **글씨 (v0.6.5, 사용자: "도트 느낌이 있다 없다 해서 이상하다"):** 큰 글씨(제목·버튼·카드 제목·큰 숫자·시계)는 모두 도트 폰트 `var(--pix)` = 갈무리11 Bold. 작은 본문(13~14px)만 나눔고딕. 도트가 선명하게 보이도록 크기는 **12 / 18 / 24 / 36 / 48px**만 씀. 예전 Do Hyeon·Silkscreen은 뺌
+- 행동 카드 아이콘은 이모지 대신 `icons.js`의 도트 아이콘 (A안 물건형: 차트 모니터 / 편의점 가게 / 집+돋보기). 시안 B 배지형·C 소품형은 탈락
 - 리포트(`screenReport`)와 종료 리포트는 `reportHTML`·`drawReport` 공유. 한 번도 안 생긴 항목은 숨김.
 
 ## 설계 원칙 (사용자와 합의)

@@ -152,19 +152,20 @@ function screenHub(){
      l2:S.reUnlocked?'마음에 들면 바로 매입':`<div class="prog mini"><i style="width:${reP}%"></i><span>3,000만까지 ${reP.toFixed(0)}% · ${UNLOCK_DAY-S.day}일 남음</span></div>`},
   ].sort((a,b)=>b.open-a.open);
   app.innerHTML=`${hud()}
-    ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:'Do Hyeon';font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
+    ${S.reJust?`<div class="box" style="background:#4a3f7c;text-align:center;font-family:var(--pix);font-size:18px">🎉 ${S.reJust==='day'?`DAY ${UNLOCK_DAY}!`:'순자산 3,000만 원 돌파!'} 이제 임장을 갈 수 있어요</div>`:''}
     <h2 class="sh">오늘 뭐 할까?</h2>
     <div class="small" style="text-align:left">하루에 하나만 할 수 있어요. 쓰지 않은 현금 <b style="color:var(--ink)">${won(S.cash)}</b>은 자동으로 적금에 들어가요 (하루 ${(saveRate()*100).toFixed(2)}%).</div>
     ${acts.map(a=>`<button class="actc" data-act="${a.k}" ${a.open?'':'disabled'}>
-      <span class="al"><span class="ai">${a.icon}</span><span class="ad">${a.prog}</span></span>
+      <span class="al"><canvas class="pi" data-ic="${a.k}" width="48" height="48"></canvas><span class="ad">${a.prog}</span></span>
       <span class="ar"><b>${a.title}</b><small>${a.l1}</small>${a.l2.startsWith('<')?a.l2:`<small>${a.l2}</small>`}</span></button>`).join('')}
-    <h3 class="sub">언제든 할 수 있어요 <span style="font-size:13px;color:var(--dim)">(하루 행동을 쓰지 않아요)</span></h3>
+    <h3 class="sub">언제든 할 수 있어요 <span style="font-size:12px;color:var(--dim)">(하루 행동을 쓰지 않아요)</span></h3>
     <div class="side">
       <button class="sidec" id="lotto"><b>복권</b><small>장당 5만 · 오늘 ${S.lotto.length}/${LOTTO_MAX}장</small></button>
       <button class="sidec" id="assets" ${propN||watchN?'':'disabled'}><b>내 자산</b><small>집 ${propN}채 · 관심 매물 ${watchN}</small></button>
       <button class="sidec" id="report" ${S.history.length?'':'disabled'}><b>리포트</b><small>지금까지 기록</small></button>
       <button class="sidec" id="news"><b>뉴스</b><small>다시 보기</small></button>
     </div>`;
+  paintIcons(app);   // 행동 카드의 도트 아이콘 그리기 (icons.js)
   app.querySelectorAll('.actc').forEach(b=>b.onclick=()=>{beep(880); S.reJust=false; const a=b.dataset.act;
     if(a==='stock') screenPick(); else if(a==='realty') screenListings(); else screenJob();});
   document.getElementById('lotto').onclick=()=>{
