@@ -235,6 +235,7 @@ function ownedCard(p,i){
     ${st}
     <div class="lbl">${p.tenant?'다음 계약 월세':'내가 정한 월세'} (시세 하루 ${won(mr)} 기준)</div>
     <div class="quick">${[.9,1,1.1,1.2].map(m=>`<button data-rent="${i}" data-m="${m}" class="${p.mult===m?'on':''}">${Math.round(m*100)}%</button>`).join('')}</div>
+    ${ltvAdjHTML(p,'p'+i)}
     ${sell}
     <button class="linkbtn" data-look="${i}" style="align-self:flex-start">지도·집 안 다시 보기</button>
   </div>`;
@@ -277,15 +278,18 @@ function screenAssets(){
     <h2 class="sh">${ic('house',24)} 내 자산</h2>
     <div class="summary">
       <div><div class="lab">현금</div><div class="val">${won(S.cash)}</div></div>
-      <div><div class="lab">부동산 지분</div><div class="val">${won(reEquity())}</div></div>
+      <div><div class="lab">${S.store?'집·가게 지분':'부동산 지분'}</div><div class="val">${won(reEquity()+storeEquity())}</div></div>
       <div><div class="lab">대출 금리 (30~70%)</div><div class="val">${(loanRate(.3)*100).toFixed(2)}~${(loanRate(.7)*100).toFixed(2)}%</div></div>
     </div>
+    ${S.store?`<h3 class="sub">내 가게</h3><div class="re own"><div class="top"><span class="nm">${ic('job')} ${S.store.name}</span><span class="small">DAY ${S.store.bought} 인수</span></div>
+      <div class="kv"><span>가게 가치 <b>${won(S.store.value)}</b></span><span>대출 <b>${won(S.store.loan)}</b></span><span>내 지분 <b>${won(storeEquity())}</b></span><span>이자 <b>하루 ${won(S.store.loan*loanRate(S.store.ltv))}</b></span></div>
+      ${ltvAdjHTML(S.store,'store')}</div>`:''}
     ${S.props.length?`<h3 class="sub">내 부동산</h3>${S.props.map(ownedCard).join('')}`:''}
     ${watch.length?`<h3 class="sub">관심 매물 (둘러본 집, 3일간)</h3>${watch.map(w=>listingCard(w.L,true)).join('')}`:''}
     ${!S.props.length&&!watch.length?'<div class="small">아직 집도 관심 매물도 없어요</div>':''}
     <button class="btn sec" id="back">← 돌아가기</button>`;
   const re=()=>keepScroll(screenAssets);
-  bindBuy(re);
+  bindBuy(re); bindLtvAdj(re);
   app.querySelectorAll('[data-rent]').forEach(b=>b.onclick=()=>{S.props[+b.dataset.rent].mult=+b.dataset.m;beep(520,.04);re();});
   app.querySelectorAll('[data-sellsel]').forEach(b=>b.onclick=()=>{S.props[+b.dataset.sellsel].sellSel=+b.dataset.m;beep(520,.04);re();});
   app.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{const p=S.props[+b.dataset.sell]; p.sell=p.sellSel??1; beep(660,.06);re();});
@@ -293,6 +297,26 @@ function screenAssets(){
   app.querySelectorAll('[data-look]').forEach(b=>b.onclick=()=>{beep(660);screenVisit(S.props[+b.dataset.look],'assets');});
   app.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{const w=S.watch.find(x=>x.L.id===b.dataset.visit); beep(660); screenVisit(w.L,'assets');});
   document.getElementById('back').onclick=()=>{beep(660); S.action==='realty'?screenListings():screenHub();};
+}
+/* ── 대출 비율 조정 (집·가게 공통, 행동 안 씀)
+   목표 대출 = 지금 시세 × 새 비율. 줄이면 현금으로 갚고, 늘리면 현금을 받음. 바뀌는 금액의 0.3%가 수수료
+   비율 구간이 바뀌면 남은 대출 전체의 가산금리도 바뀜 (70% +0.40%p → 30% +0.15%p) */
+function ltvPlan(o,v){ const target=o.value*v, d=target-o.loan, fee=Math.abs(d)*LTV_FEE;
+  return {target, d, fee, cash:d<0? -d+fee : -(d-fee), rate:loanRate(v)}; }   // cash: 내야 하는 현금 (음수면 받는 현금)
+function ltvAdjHTML(o,key){
+  const cur=o.ltv??.7, sel=o.ltvSel??cur, pl=ltvPlan(o,sel), now=o.loan*loanRate(cur);
+  return `<div class="lbl">대출 비율 조정 <small>(변동금리 · 지금 ${Math.round(o.loan/o.value*100)}%, 이자 하루 ${won(now)})</small></div>
+    <div class="quick">${[0,.3,.5,.7].map(v=>`<button data-ltvadj="${key}" data-v="${v}" class="${sel===v?'on':''}">${Math.round(v*100)}%${v===cur?' ·지금':''}</button>`).join('')}</div>
+    ${sel!==cur||Math.abs(pl.d)>o.value*.02?`<div class="act"><span class="need">${pl.d<0?`갚을 돈 <b>${won(-pl.d)}</b>`:`더 받는 대출 <b>${won(pl.d)}</b>`} · 수수료 ${won(pl.fee)}<br>
+      이자 하루 ${won(now)} → <b>${won(pl.target*pl.rate)}</b> (금리 ${(pl.rate*100).toFixed(2)}%)</span>
+      <button class="btn sec sm" data-ltvgo="${key}" ${pl.cash>S.cash?'disabled':''}>${pl.cash>S.cash?'현금 부족':'조정'}</button></div>`:''}`;
+}
+function applyLtv(o,v){ const pl=ltvPlan(o,v); if(pl.cash>S.cash) return false;
+  S.cash-=pl.cash; o.loan=pl.target; o.ltv=v; o.ltvSel=null; if(o.paid!=null) o.paid+=pl.cash; return true; }   // 수수료는 저녁 결산에서 '집 매매·세금'(나머지)으로 잡힘
+function bindLtvAdj(rerender){
+  const obj=k=>k==='store'?S.store:S.props[+k.slice(1)];
+  app.querySelectorAll('[data-ltvadj]').forEach(b=>b.onclick=()=>{ obj(b.dataset.ltvadj).ltvSel=+b.dataset.v; beep(520,.04); rerender(); });
+  app.querySelectorAll('[data-ltvgo]').forEach(b=>b.onclick=()=>{ const o=obj(b.dataset.ltvgo); if(applyLtv(o,o.ltvSel??o.ltv)) beep(880,.08); rerender(); });
 }
 function keepScroll(fn){const y=window.scrollY; fn(); window.scrollTo(0,y);}
 const findListing=id=>S.listings.find(x=>x.id===id)||(S.watch.find(w=>w.L.id===id)||{}).L;

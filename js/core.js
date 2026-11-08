@@ -44,6 +44,10 @@ function newRun(){
 }
 // 금리: 하나의 기준금리에 적금·대출이 같이 묶여 있다
 const saveRate=()=>S.base;
+// 확률표에서 하나 고르기: [[값, 확률%], ...]
+function wpick(list,r){ let x=r()*100; for(const [v,w] of list){ if(x<w) return v; x-=w; } return list[list.length-1][0]; }
+// 이번 판 금리 방향 (씨앗으로 정해서 같은 판이면 항상 같음). 봇이 newRun 뒤에 씨앗을 바꾸니까 첫날 아침에 정함
+function rateCycleInit(){ if(!S.rateCycle) S.rateCycle=wpick(RATE_CYCLES.map(([k,w])=>[k,w]),mulberry32(S.seed*7+13)); }
 const loanRate=(ltv=.3)=>S.base+(LTV_SPREAD[ltv]??LOAN_SPREAD);   // 대출 비율별 금리
 const propRate=p=>loanRate(p.ltv??.7);                          // 내 집의 대출 금리
 // 부동산 계산
@@ -55,10 +59,24 @@ function sellP(p,mult){ // 오늘 저녁 팔릴 확률
   const f=mult<1?2.0:(mult>1?.55:1);
   return clamp(REG[p.r].liq[p.t]*(1+.5*p.cat.station)*featLiq(p.feat)*f,.02,.95); }
 const reEquity=()=>S.props.reduce((a,p)=>a+p.value-p.loan,0);
-const netWorth=()=>S.cash+reEquity();
+const netWorth=()=>S.cash+reEquity()+(S.store?S.store.value-S.store.loan:0);   // 현금 + 집 지분 + 가게 지분 (펀드는 남의 돈이라 빠짐)
 
-function loadBest(){try{return JSON.parse(localStorage.getItem('mt_best')||'null')}catch(e){return null}}
-function saveBest(days,money){try{const b=loadBest(); if(!b||days<b.days||(days===b.days&&money>b.money)) localStorage.setItem('mt_best',JSON.stringify({days,money}))}catch(e){}}
+// ── 기록·랭킹 (지금은 이 기기에만 저장. 나중에 로그인 + Firebase 온라인 랭킹으로 바꿀 자리)
+// 순위: 1억 달성한 판이 위 (빨리 달성할수록 위, 같은 날이면 순자산 많은 순) → 못 한 판은 최종 순자산 순
+const recSort=(a,b)=>(b.win-a.win)||(a.win?a.days-b.days:0)||(b.money-a.money);
+function loadRecords(){
+  try{ let r=JSON.parse(localStorage.getItem('omz_records')||'null');
+    if(!r){ const old=JSON.parse(localStorage.getItem('mt_best')||'null');   // 예전 버전 최고 기록 옮겨 오기
+      r=old?[{win:true,days:old.days,money:old.money,at:Date.now()}]:[]; }
+    return r.sort(recSort);
+  }catch(e){ return []; }
+}
+function saveRecord(win,days,money){
+  try{ const r=loadRecords(); r.push({win,days,money,at:Date.now()}); r.sort(recSort);
+    localStorage.setItem('omz_records',JSON.stringify(r.slice(0,20))); }catch(e){}
+}
+const loadBest=()=>loadRecords()[0]||null;
+const recText=r=>r.win?`DAY ${r.days} 달성 · ${won(r.money)}`:`${r.days}일 · ${won(r.money)}`;
 
 const app=document.getElementById('app');
 function hud(){return `<div class="hud"><span class="px">DAY <b>${S.day}</b>/${DAYS}</span><span>순자산 <b>${won(netWorth())}</b></span></div>`}

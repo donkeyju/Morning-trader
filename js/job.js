@@ -15,6 +15,7 @@ const payOf=(stage,score)=>{const [lo,hi]=CAREER[stage].pay; return Math.round((
 
 /* ---------- 18-0. 출근 화면 ---------- */
 function screenJob(){
+  if(S.store) return screenOwner();
   const st=S.career.stage, c=careerNow();
   const rules=[
     [`손님이 낸 돈에서 <b>합계를 뺀 거스름돈</b>을 지폐·동전으로 맞춰서 건네요 (30초)`,
@@ -163,18 +164,47 @@ function runOrder(){
     document.getElementById('go').onclick=()=>{
       const pts=CVS_CATS.map(c=>[1,.4,0][Math.abs(J.pick[c.k]-J.d[c.k])]), hit=pts.reduce((a,b)=>a+b,0)/CVS_CATS.length;
       const rows=CVS_CATS.map((c,i)=>`<div class="rl"><span>${ic(c.icon)} ${c.name}</span><span>내 발주 <b>${LV[J.pick[c.k]]}</b> · 실제 <b>${LV[J.d[c.k]]}</b> ${ic(pts[i]===1?'chk':pts[i]>0?'half':'xmark')}</span></div>`).join('');
-      endShift({pay:payOf(2,hit), good:hit>=.7, line:`발주 적중 ${Math.round(hit*100)}%`, extra:`<div class="paper" style="padding:8px 12px">${rows}</div>`});
+      const extra=`<div class="paper" style="padding:8px 12px">${rows}</div>`;
+      if(S.store){ S.storeQ=hit; endShift({pay:0, good:false, owner:true, line:`발주 적중 ${Math.round(hit*100)}%`, extra}); }   // 사장: 일당 없음, 적중률이 저녁 가게 손익표에 들어감
+      else endShift({pay:payOf(2,hit), good:hit>=.7, line:`발주 적중 ${Math.round(hit*100)}%`, extra});
     };
   };
   render();
 }
 
+/* ---------- 18-5. 사장 출근: 내가 점장 역할 (발주 게임) ---------- */
+function screenOwner(){
+  const dem=storeDemand(), a=storeSettle(S.store,null,dem).net, b=storeSettle(S.store,.9,dem).net;
+  app.innerHTML=`${hud()}
+    <h2 class="sh">${ic('job',24)} ${S.store.name} · Lv.4 사장</h2>
+    <canvas id="shop" class="pix" width="160" height="72"></canvas>
+    <div class="box rules"><ul style="margin:0;padding-left:18px">
+      <li>출근하면 <b>내가 점장 역할</b>을 해요 → 인건비 ${won(STORE.staff)}이 안 나가요</li>
+      <li>뉴스와 동네 소식을 보고 <b>발주</b>를 맞힐수록 매출이 늘고(최대 +10%) 폐기가 줄어요</li>
+      <li>발주를 많이 틀리면 폐기·품절 손실이 커져서 출근 안 한 날보다 못할 수도 있어요</li></ul></div>
+    <div class="box" style="font-size:14px">오늘 예상: 출근 안 하면 <b>${won(a)}</b> · 출근해서 잘하면 <b>${won(b)}</b></div>
+    <button class="btn sec" id="back">← 다른 걸 할래요</button>
+    <button class="btn" id="go">출근하기!</button>`;
+  startShop(document.getElementById('shop'));
+  document.getElementById('back').onclick=()=>{beep(660);screenHub();};
+  document.getElementById('go').onclick=()=>{S.action='job';beep(990);runOrder();};
+}
+
 /* ---------- 18-4. 퇴근 (공통) ---------- */
-function endShift({pay,good,line,extra=''}){
+function endShift({pay,good,line,extra='',owner=false}){
   if(J&&J.timer) clearInterval(J.timer);
   J=null; S.jobPay=pay; S.jobGood=good;
   beep(523,.12);setTimeout(()=>beep(659,.12),130);setTimeout(()=>beep(784,.2),260);
   const c=careerNow(), max=S.career.stage>=CAREER.length-1&&S.career.good>=c.need;
+  if(owner){ const g=storeSettle(S.store,S.storeQ,storeDemand());
+    app.innerHTML=`${hud()}<h2 class="sh">${ic('job',24)} 가게 문 닫을 시간!</h2><canvas id="shop" class="pix" width="160" height="72"></canvas>
+      <div class="box res-big"><div class="small">${line}</div><div class="pl ${cls(g.net)}">${won(g.net,true)}</div>
+        <div class="msg">오늘 가게 예상 순이익 (저녁 결산 때 들어와요)</div>
+        <div class="small">직원을 안 써서 인건비 ${won(STORE.staff)} 절약 · 폐기·품절 ${won(-g.waste,true)}</div></div>
+      ${extra}<button class="btn" id="end">하루 마치기 →</button>`;
+    startShop(document.getElementById('shop'));
+    document.getElementById('end').onclick=()=>{beep(880);finishDay(null);};
+    return; }
   app.innerHTML=`${hud()}
     <h2 class="sh">${ic(c.icon,24)} 퇴근!</h2>
     <canvas id="shop" class="pix" width="160" height="72"></canvas>

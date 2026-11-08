@@ -160,7 +160,25 @@ const ICONS={
   half(){ const g=iconGrid(8); iPoly(g,[[4,0],[8,4],[4,8],[0,4]],'k'); iPoly(g,[[4,1.2],[6.8,4],[4,6.8],[1.2,4]],'o'); return g; },
   xmark(){ const g=iconGrid(8); iLine(g,0,0,6,6,'k',2); iLine(g,6,0,0,6,'k',2); iLine(g,1,1,6,6,'r'); iLine(g,6,1,1,6,'r'); return g; },
 
+  fund(){ const g=iconGrid();                                                // 펀드 (서류가방 + 오르는 그래프)
+    iRect(g,6,2,4,1,'N'); iRect(g,5,3,1,2,'N'); iRect(g,10,3,1,2,'N');
+    iRect(g,1,5,14,9,'n'); iRect(g,1,8,14,1,'N'); iRect(g,7,8,2,2,'g');
+    iLine(g,3,12,6,10,'m'); iLine(g,6,10,9,11,'m'); iLine(g,9,11,12,6,'m'); return iOutline(g); },
+
   /* ---------- 승진 팝업용 큰 그림 (32x32) ---------- */
+  P_owner(){ const g=iconGrid(32);                                           // 사장 취임: 가게 + OPEN 간판 + 꽃가루
+    iRect(g,3,8,26,4,'o'); for(let x=2;x<30;x++) iRect(g,x,12,1,4,(x>>1)%2?'w':'m');
+    iRect(g,3,16,26,13,'w'); iRect(g,5,18,10,8,'b'); iRect(g,6,18,3,1,'W'); iRect(g,18,18,9,11,'s'); iRect(g,25,23,1,2,'k');
+    iRect(g,8,3,16,4,'r'); iPx(g,[[10,4],[10,5],[11,4],[11,5],[13,4],[13,5],[14,4],[16,4],[16,5],[17,4],[19,4],[19,5],[20,5],[21,4],[21,5]],'W');   // OPEN 느낌 글씨
+    iLine(g,11,7,13,8,'S'); iLine(g,21,7,19,8,'S');
+    iPx(g,[[1,2],[5,1],[27,2],[30,5],[1,6],[29,9]],'g'); iPx(g,[[3,4],[26,0],[31,1]],'a'); iPx(g,[[0,9],[28,6]],'b');
+    return iOutline(g); },
+  P_fund(){ const g=iconGrid(32);                                            // 펀드 운용 제안: 서류가방 + 오르는 그래프 + 동전
+    iRect(g,11,5,10,2,'N'); iRect(g,9,7,2,4,'N'); iRect(g,21,7,2,4,'N');
+    iRect(g,2,11,28,17,'n'); iRect(g,2,17,28,2,'N'); iRect(g,14,16,4,4,'g'); iRect(g,15,17,2,1,'y');
+    iLine(g,5,25,10,21,'m',2); iLine(g,10,21,15,23,'m',2); iLine(g,15,23,24,13,'m',2); iRect(g,22,11,5,2,'m'); iRect(g,25,11,2,5,'m');
+    iDisc(g,27,27,3.6,'g'); iRect(g,26,25,2,4,'G'); iDisc(g,5,5,2.6,'g'); iRect(g,4,4,2,2,'y');
+    return iOutline(g); },
   P_register(){ const g=iconGrid(32);                                        // 계산 알바 → (시작 단계라 팝업엔 안 나오지만 리포트용)
     iRect(g,5,3,7,12,'w'); for(let y=5;y<13;y+=2) iRect(g,7,y,3,1,'x');      // 영수증
     iRect(g,17,3,12,7,'S'); iRect(g,18,4,10,5,'c'); iPx(g,[[19,6],[20,6],[22,6],[24,6],[25,6]],'m'); iRect(g,22,10,2,4,'S');

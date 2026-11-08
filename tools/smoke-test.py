@@ -98,8 +98,34 @@ async def main():
         assert await pg.evaluate("T.stocks[0].dir")==-1, "공매도 방향이 반영되지 않음"
         await shot("10_short.png")
         await pg.wait_for_selector("#dayend", timeout=30000)
+        # 펀드매니저: 좋은 장 결과를 넣어 슈퍼개미 → 펀드매니저
+        await pg.evaluate("document.getElementById('dayend').remove(); S.day++; startDay(); S.inv={tier:1,good:5}; S.action='stock'; S.investPct=50; finishDay([{name:'테스트',chg:.2,pl:1e6,end:6e6,slip:0}])")
+        await pg.wait_for_selector(".promo-ov", timeout=3000); assert await pg.evaluate("!!S.fund&&S.inv.tier===2"), "펀드매니저가 안 됨"
+        await shot("12_fund.png"); await pg.click(".promo-ov button")
+        # 사장: 인수 제안 → 계약서 → 손가락 서명 → 계약
+        await pg.evaluate("document.getElementById('dayend').remove(); S.day++; startDay(); S.career={stage:2,good:4}; S.storeOffer=true; S.cash=3e7; screenHub()")
+        assert "기준금리" in await pg.inner_text("#app"), "기준금리 표시줄이 없음"
+        await pg.click("#contract"); await pg.wait_for_timeout(200)
+        box=await pg.locator("#sig").bounding_box()
+        await pg.mouse.move(box["x"]+20,box["y"]+60); await pg.mouse.down()
+        for k in range(1,25): await pg.mouse.move(box["x"]+20+k*10, box["y"]+60+(15 if k%2 else -15))
+        await pg.mouse.up(); await shot("13_contract.png")
+        assert not await pg.is_disabled("#sign"), "서명했는데 계약 버튼이 안 켜짐"
+        await pg.click("#sign"); await pg.wait_for_selector(".promo-ov", timeout=3000); await shot("14_owner.png")
+        await pg.click(".promo-ov button"); await pg.wait_for_timeout(200)
+        assert await pg.evaluate("!!S.store&&S.store.loan===2e7"), "가게 인수가 안 됨"
+        # 사장 출근 → 발주 → 저녁 손익표
+        await pg.click('[data-act="job"]'); await pg.click("#go"); await pg.wait_for_timeout(200); await pg.click("#go"); await pg.wait_for_timeout(200)
+        await pg.click("#end"); await pg.wait_for_selector("#dayend")
+        assert "가게 순이익" in await pg.inner_text("#dayend"), "마감에 가게 순이익이 없음"
+        await pg.evaluate("document.querySelector('#dayend details').open=true"); await shot("15_store_dayend.png")
+        # 대출 비율 조정 (가게 50% → 30%)
+        await pg.click("#next"); await pg.wait_for_timeout(200); await pg.click("#next"); await pg.click("#assets")
+        await pg.click('[data-ltvadj="store"][data-v="0.3"]'); await shot("16_ltv.png"); await pg.click('[data-ltvgo="store"]')
+        assert abs(await pg.evaluate("S.store.loan")-1.2e7)<1, "대출 비율 조정이 안 됨"
+        await pg.click("#back")
         # 종료 리포트
-        await pg.evaluate("S.day=30"); await pg.click("#next"); await pg.wait_for_timeout(500)
+        await pg.evaluate("S.day=30; finishDay(null)"); await pg.wait_for_selector("#dayend"); await pg.click("#next"); await pg.wait_for_timeout(500)
         await shot("11_end.png")
         await browser.close()
 

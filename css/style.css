@@ -209,3 +209,34 @@ h2.sh canvas.pi{vertical-align:-4px}
 @keyframes stamp{from{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2)}to{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}}
 .limtag{display:inline-block;margin-left:6px;padding:1px 6px;font-family:var(--pix);font-size:12px;color:#fff;vertical-align:middle;border:2px solid var(--line)}
 .limtag.up{background:var(--up)} .limtag.down{background:var(--down)}
+
+/* 첫 화면 랭킹 (day.js rankHTML) */
+.rank{padding:10px 12px}
+.rank .rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.rank .rh span{font-family:var(--pix);font-size:18px;color:var(--gold)} .rank .rh small{font-size:11px;color:var(--dim);text-align:right}
+.rk{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed #3a3260;font-size:13px}
+.rk .no{font-family:var(--pix);font-size:12px;color:var(--dim);text-align:center} .rk.top .no{color:var(--gold)}
+.rk b{font-weight:400;font-family:var(--pix);font-size:12px} .rk b.gold{color:var(--gold)}
+.rk.empty{display:block;text-align:center;color:var(--dim);padding:10px 0}
+.mybest{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;background:#4a3f7c;border:2px solid var(--line);font-size:13px}
+.mybest b{font-family:var(--pix);font-weight:400;font-size:12px;color:var(--gold)}
+.howto ul{margin:8px 0 4px;padding-left:18px;line-height:1.8;font-size:14px}
+
+/* 기준금리 표시줄 (day.js rateBar) */
+.ratebar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:#231f3d;border:2px solid var(--line);padding:6px 8px;margin:6px 0 2px}
+.ratebar b{color:var(--ink);font-family:var(--pix);font-weight:400} .ratebar small{font-size:11px}
+
+/* 가게 인수 계약서 (biz.js) */
+.contract{position:relative;padding:10px 14px}
+.contract .ct>div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:14px;border-bottom:1px dotted #c9b98f}
+.contract .ct .hr{border-bottom:2px solid #3a2d14;padding:0;margin:4px 0}
+.contract .lbl{color:#3a2d14;margin-top:8px}
+.sigwrap{position:relative;margin-top:10px;border:2px dashed #8a7650;background:#fffaf0}
+.sigwrap canvas{display:block;width:100%;height:auto;touch-action:none;image-rendering:pixelated;cursor:crosshair}
+.siglab{position:absolute;left:8px;top:4px;font-size:11px;color:#8a7650;pointer-events:none}
+.sigwrap .linkbtn{position:absolute;right:6px;bottom:4px;color:#8a7650}
+.stampfx{color:#d7263d!important;background:rgba(255,250,240,.6)!important}
+.rcpt{font-size:12px;color:var(--dim);margin:-2px 0 6px 10px}
+.rcpt summary{cursor:pointer}
+.rcpt>div{display:flex;justify-content:space-between;padding:1px 0}
+.rcpt .tot{border-top:1px solid #4a4370;margin-top:2px;padding-top:2px}
