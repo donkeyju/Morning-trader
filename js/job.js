@@ -39,7 +39,7 @@ function screenJob(){
     <button class="btn" id="go">출근하기!</button>`;
   startShop(document.getElementById('shop'));
   document.getElementById('back').onclick=()=>{beep(660);screenHub();};
-  document.getElementById('go').onclick=()=>{S.action='job';beep(990);[runJob,runShelf,runOrder][st]();};
+  document.getElementById('go').onclick=()=>{S.action='job';markInProgress('job');beep(990);[runJob,runShelf,runOrder][st]();};
 }
 // 30초 타이머 (계산·물류 공통)
 function startJobTimer(onEnd){
@@ -187,7 +187,7 @@ function screenOwner(){
     <button class="btn" id="go">출근하기!</button>`;
   startShop(document.getElementById('shop'));
   document.getElementById('back').onclick=()=>{beep(660);screenHub();};
-  document.getElementById('go').onclick=()=>{S.action='job';beep(990);runOrder();};
+  document.getElementById('go').onclick=()=>{S.action='job';markInProgress('job');beep(990);runOrder();};
 }
 
 /* ---------- 18-4. 퇴근 (공통) ---------- */

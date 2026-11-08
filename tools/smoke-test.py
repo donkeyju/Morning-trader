@@ -127,6 +127,40 @@ async def main():
         # 종료 리포트
         await pg.evaluate("S.day=30; finishDay(null)"); await pg.wait_for_selector("#dayend"); await pg.click("#next"); await pg.wait_for_timeout(500)
         await shot("11_end.png")
+
+        # ── 자동 저장 · 이어하기 · 꼼수 방지 · 개발자 모드 (새 탭, 같은 브라우저 저장소)
+        ctx=await browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+        await ctx.add_init_script("window.FAST_TEST=true")
+        pg2=await ctx.new_page(); pg2.on("pageerror", lambda e: errors.append(str(e)))
+        URL="file://" + os.path.join(ROOT, "index.html")
+        shot2=lambda page,name: page.screenshot(path=os.path.join(SHOTS, name), full_page=True)
+        await pg2.goto(URL); await pg2.wait_for_timeout(300)
+        await pg2.evaluate("localStorage.removeItem('omz_save')"); await pg2.reload(); await pg2.wait_for_timeout(300)
+        assert not await pg2.query_selector("#resume"), "저장이 없는데 이어하기가 보임"
+        await pg2.click("#go"); await pg2.click("#next"); await pg2.wait_for_timeout(100)
+        await pg2.reload(); await pg2.wait_for_timeout(300)
+        assert "DAY 1" in await pg2.inner_text("#resume"), "아침 저장 → 이어하기 DAY 1이 안 보임"
+        await shot2(pg2,"17_resume_title.png")
+        await pg2.click("#resume"); await pg2.wait_for_selector("#next"); await pg2.click("#next")
+        cash0=await pg2.evaluate("S.cash")
+        await pg2.click('[data-act="stock"]'); await pg2.click('.card[data-k="semi"]'); await pg2.click('.card[data-k="bio"]'); await pg2.click("#next")
+        await pg2.wait_for_timeout(300); await pg2.reload(); await pg2.wait_for_timeout(300)   # 주식장 도중에 끔
+        await pg2.click("#resume"); await pg2.wait_for_selector("#dayend")
+        assert "쉬는 날로 처리" in await pg2.inner_text("#dayend"), "도중에 끈 날이 쉬는 날로 처리되지 않음"
+        assert await pg2.evaluate("S.history[S.history.length-1].stock")==0, "도중에 끈 주식장 손익이 반영됨"
+        await shot2(pg2,"18_forfeit.png")
+        await pg2.reload(); await pg2.wait_for_timeout(300)                                  # 저녁 결산 뒤에 끔 → 다음 날
+        await pg2.click("#resume"); await pg2.wait_for_timeout(200)
+        assert await pg2.evaluate("S.day")==2, "결산 뒤 이어하기가 다음 날로 안 감"
+        # 개발자 모드: 로고 5번 탭으로 켜기 → 패널 → 인수 제안 받기
+        await pg2.evaluate("screenTitle()"); await pg2.wait_for_timeout(100)
+        for _ in range(5): await pg2.click("#logo")
+        await pg2.wait_for_selector("#devbtn"); await pg2.click("#resume"); await pg2.wait_for_selector("#next"); await pg2.click("#next")
+        await pg2.click("#devbtn"); await shot2(pg2,"19_dev.png")
+        await pg2.click("#devpanel button:has-text('인수 제안 받기')"); await pg2.wait_for_selector("#contract")
+        assert await pg2.evaluate("S.dev===true"), "개발자 모드 표시가 안 됨"
+        await pg2.click("#devbtn"); await pg2.click("#devoff"); await pg2.wait_for_timeout(100)
+        assert not await pg2.query_selector("#devbtn"), "개발자 모드가 안 꺼짐"
         await browser.close()
 
     if errors:

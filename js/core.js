@@ -72,6 +72,7 @@ function loadRecords(){
   }catch(e){ return []; }
 }
 function saveRecord(win,days,money){
+  if(S&&S.dev) return;   // 개발자 모드로 건드린 판은 랭킹에 안 넣음
   try{ const r=loadRecords(); r.push({win,days,money,at:Date.now()}); r.sort(recSort);
     localStorage.setItem('omz_records',JSON.stringify(r.slice(0,20))); }catch(e){}
 }

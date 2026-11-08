@@ -7,15 +7,20 @@
    10. 타이틀
    ========================================================= */
 function screenTitle(){
+  const sv=loadSave(); S=null;
   app.innerHTML=`
     <canvas id="logo" class="pix logo" width="640" height="200" aria-label="ONE MORE ZERO"></canvas>
     <div class="title-logo"><div class="ko dh">30일 안에 1,000만 원을 1억으로</div></div>
     <canvas id="sc" class="pix" width="160" height="80"></canvas>
     ${rankHTML()}
-    <div class="btns"><button class="btn big" id="go" style="flex:2">게임 시작</button><button class="btn sec" id="how" style="flex:1;font-size:18px;white-space:nowrap">게임 방법</button></div>`;
+    ${sv?`<button class="btn big" id="resume">이어하기 · DAY ${sv.day}</button>`:''}
+    <div class="btns"><button class="btn ${sv?'sec':'big'}" id="go" style="flex:2">${sv?'새 게임':'게임 시작'}</button><button class="btn sec" id="how" style="flex:1;font-size:18px;white-space:nowrap">게임 방법</button></div>`;
   startLogo(document.getElementById('logo'));
   startScene(document.getElementById('sc'),'night','normal');
-  document.getElementById('go').onclick=()=>{beep(880);newRun();startDay();};
+  const go=document.getElementById('go');
+  go.onclick=()=>{ if(sv&&!go.dataset.sure){ go.dataset.sure=1; go.textContent='정말 새로? (이어하기 삭제)'; go.style.fontSize='16px'; beep(300,.08); return; }
+    beep(880); clearSave(); newRun(); startDay(); };
+  const rs=document.getElementById('resume'); if(rs) rs.onclick=()=>{beep(880); resumeGame();};
   document.getElementById('how').onclick=()=>{beep(520);showHowTo();};
 }
 // 랭킹 상자: 위 5등까지 + 맨 아래 내 최고 기록
@@ -112,6 +117,7 @@ function startDay(){
     if(pick.length<2) pick.push(genListing(lr,99,{r:'local',t:'villa',sz:'s'})); // 돈이 적어도 하나는 살 수 있게
     for(const c of cand){ if(pick.length>=4)break; if(!pick.includes(c)) pick.push(c); }
     S.listings=shuffle(pick,lr).map((L,i)=>({...L,id:`D${S.day}-${i}`})); S.visits=2;}
+  S.phase='morning'; S.inProgress=null; S.forfeit=false; saveGame();   // 아침마다 자동 저장
   screenNews();
 }
 
@@ -167,6 +173,7 @@ function showNewsSheet(){
 const LOTTO_PRICE=50000, LOTTO_MAX=2;
 const LOTTO_TIERS=[[.0001,60000000,'1등'],[.001,5000000,'2등'],[.01,500000,'3등'],[.05,50000,'4등']]; // [확률, 당첨금, 이름]
 function screenHub(){
+  saveGame();
   const watchN=S.watch.length, propN=S.props.length, inv=INV_TIERS[S.inv.tier], car=careerNow();
   // 행동 카드: 할 수 있는 것 먼저, 잠긴 것은 아래로
   // 모든 카드는 "제목 + 두 줄"로 같은 높이 (잠긴 임장은 둘째 줄이 진행 바)
@@ -241,7 +248,7 @@ function screenReport(){
 const withRo=w=>{const c=w.charCodeAt(w.length-1)-0xAC00, jong=c>=0&&c<11172?c%28:0; return w+(jong===0||jong===8?'로':'으로');};
 const ACT_NAME={get stock(){return ic('stock')+' 주식장';},get realty(){return ic('realty')+' 임장';},get job(){return S.store?`${ic('job')} 내 가게 출근`:`${ic(careerNow().icon)} 편의점 ${careerNow().title}`;}};
 function finishDay(result){
-  const r=dayRng(3), td=S.today;
+  const r=dayRng(3), td=S.today; S.inProgress=null;
   const invest=S.action==='stock'?S.cash*S.investPct/100:0, save=S.cash-invest, interest=save*saveRate();
   const stockEnd=result?result.reduce((a,x)=>a+x.end,0):invest;
   // 안 고른 종목도 오늘 뉴스대로 움직임
@@ -296,6 +303,8 @@ function finishDay(result){
   H.deal=dayPL-(tradePL+S.jobPay+interest+rentIn-loanOut+reMove+lottoNet+storeNet+fundIn);   // 나머지 = 집·가게 사고판 차익·세금·수수료
   S.history.push(H);
   // ── 승진 / 등급 ──  (좋은 근무·좋은 장을 누적으로 세다가 need에 닿으면 다음 단계)
+  if(S.forfeit) logs.unshift(`${ic('warn')} 하던 걸 도중에 그만둬서 이날은 쉬는 날로 처리됐어요`);
+  S.phase='dayDone'; saveGame();   // 저녁 결산이 끝난 상태를 저장 (다시 열면 다음 날 아침)
   const promo=[];
   if(S.action==='job'&&S.jobGood){ const c=S.career; c.good++;
     if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push({art:CAREER[c.stage].art, head:'승진!', title:`${withRo(lvName(CAREER,c.stage))} 승진`, sub:`일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`}); }
@@ -359,7 +368,7 @@ function screenDayEnd({H,dayPL,ch,net,result,logs,promo=[],storeRec=null,fundRec
     tk.prize?(beep(1318,.08),setTimeout(()=>beep(1760,.12),90)):beep(300,.06);},700+i*700));
   ov.querySelector('#why').onclick=()=>{const b=ov.querySelector('#whybox'); b.style.display=b.style.display==='none'?'block':'none';};
   ov.querySelector('#next').onclick=()=>{beep(880); ov.remove();
-    if(done){saveRecord(true,S.day,net);screenEnd('win');} else if(broke){saveRecord(false,S.day,net);screenEnd('broke');} else if(last){saveRecord(false,S.day,net);screenEnd('fail');} else {S.day++;startDay();} };
+    nextDay(); };   // save.js
 }
 
 function screenEnd(kind){

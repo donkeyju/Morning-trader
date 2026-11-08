@@ -42,7 +42,7 @@ function screenPick(){
   refresh();
   document.getElementById('back').onclick=()=>{beep(660);screenHub();};
   document.getElementById('news').onclick=showNewsSheet;
-  document.getElementById('next').onclick=()=>{S.action='stock';beep(990);screenTrade();};
+  document.getElementById('next').onclick=()=>{S.action='stock';markInProgress('stock');beep(990);screenTrade();};
 }
 
 

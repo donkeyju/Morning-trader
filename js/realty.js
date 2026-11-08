@@ -251,6 +251,7 @@ function listingCard(L,inWatch){
   </div>`;
 }
 function screenListings(){
+  saveGame();
   const committed=S.action==='realty';
   app.innerHTML=`${hud()}
     <h2 class="sh">${ic('realty',24)} 임장 가는 날</h2>
@@ -266,13 +267,14 @@ function screenListings(){
   bindBuy(()=>keepScroll(screenListings));
   app.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{const L=S.listings.find(x=>x.id===b.dataset.visit);
     if(!L.visited){ if(S.visits<=0)return; S.visits--; L.visited=true; S.action='realty';
-      if(!S.watch.some(w=>w.L===L)) S.watch.push({L,until:S.day+2}); }
+      if(!S.watch.some(w=>w.L===L)) S.watch.push({L,until:S.day+2}); saveGame(); }
     beep(880); screenVisit(L,'listings');});
   const bk=document.getElementById('back'); if(bk) bk.onclick=()=>{beep(660);screenHub();};
   document.getElementById('end').onclick=()=>{S.action='realty';beep(880);finishDay(null);};
 }
 // 내 자산: 보유한 집 관리 + 관심 매물 사기 (행동 소모 없음)
 function screenAssets(){
+  saveGame();
   const watch=S.watch.filter(w=>!S.listings.includes(w.L)||S.action!=='realty');
   app.innerHTML=`${hud()}
     <h2 class="sh">${ic('house',24)} 내 자산</h2>

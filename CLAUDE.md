@@ -18,7 +18,7 @@
 
 ## 파일 구조
 빌드 도구 없이 브라우저에서 바로 돌아가요. 모든 함수와 상수는 **전역**이라 파일끼리 그냥 서로 불러 써요.
-`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → biz → logo → icons → day (day.js 마지막 줄에서 게임 시작).
+`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → biz → save → dev → logo → icons → day (day.js 마지막 줄에서 게임 시작).
 
 | 파일 | 내용 | 주요 함수·상수 |
 |---|---|---|
@@ -27,6 +27,8 @@
 | `js/data.js` | **밸런스 숫자와 데이터 대부분** | `START_MONEY` `GOAL` `DAYS` `STOCK_TREND` `STOCK_NOISE` `FEE` `LOAN_SPREAD` `LTV_SPREAD` `RE_CONVERGE` `RE_TAX` `CONTRACT_DAYS` `STOCKS` `VOL` `UNLOCK_RE` `UNLOCK_DAY` `REG` `TYPES` `SIZES` `LOC_W` `MAP_R` `feat*()` `CAREER` `INV_TIERS` `INV_GOOD` `SHORT_FEE` `CVS_CATS` `NEWS_MAX_SEEN` `MOODS` `LIMIT_UP/DOWN` `RATE_CYCLES` `RATE_DAYS` `RATE_STEPS` `LTV_FEE` `STORE` `FUND` |
 | `js/news.js` | **뉴스 데이터 전부** (158개 + 금리 기사) | `STOCK_NEWS`(79) `REALTY_NEWS`(34) `CRASH_NEWS`(5) `BREAKING`(15) `LOCAL_NEWS`(25) `RATE_DECISION` `RATE_HINTS` |
 | `js/biz.js` | **사장(가게)·펀드매니저** — 정산 식은 게임과 봇이 같이 씀 | `storeDemand` `storeSettle(가게,적중률|null,수요)`(손익표) `storeEquity` `fundSettle(펀드,수익률|null)` `screenContract`(계약서·서명) |
+| `js/save.js` | **자동 저장·이어하기** (이 기기, 로그인 없이) | `saveGame` `loadSave` `clearSave` `markInProgress` `resumeGame` `nextDay`(마감 팝업 [다음 날]과 같이 씀) |
+| `js/dev.js` | **개발자 모드** (사용자 테스트용) | 첫 화면 로고 5번 탭 또는 `?dev=1` → 오른쪽 아래 DEV 버튼 → 패널(돈·날짜·편의점 단계·주식 등급·금리). 건드린 판은 `S.dev=true` → 랭킹 제외. 항목 추가는 `DEV_ACTIONS`에 |
 | `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate(ltv)` `propRate(p)` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
 | `js/stock.js` | 주식장 | `screenPick`(금액·종목·방향) `screenTrade` `runTicks`(가격 움직임) `doBuy`(진입) `doSell`(청산) `sellCore` `posVal`(공매도 평가) `drawChart` `endTrade` `invBadge` |
@@ -40,8 +42,9 @@
 | `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 | |
 
 ### 상태 객체
-- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `newsSeen`(뉴스 제목별 본 횟수) `rateCycle`(up/flat/down) `store`{value,loan,ltv} `storeOffer` `storeQ`(오늘 발주 적중률) `fund`{size} `contractLtv` `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
+- `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `newsSeen`(뉴스 제목별 본 횟수) `rateCycle`(up/flat/down) `store`{value,loan,ltv} `storeOffer` `storeQ`(오늘 발주 적중률) `fund`{size} `contractLtv` `phase`(morning/dayDone) `inProgress`(stock/job) `forfeit` `dev` `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
 - `T` (stock.js): 1분 장 진행 상태. `J` (job.js): 알바 진행 상태.
+- 저장: `localStorage` `omz_save`(지금 판, save.js) / `omz_dev`(개발자 모드 켬)
 - 기록·랭킹: `localStorage` `omz_records`(이 기기, 최대 20판) — `loadRecords` `saveRecord` `recText` (core.js). 나중에 로그인 + Firebase로 바꿀 자리
 - `S.today` (day.js `startDay`): 오늘 뉴스 `items`, 섹터 영향 `eff`, 부동산 영향 `reEff` `reTypeEff` `rentEff` `rentTypeEff`, 분위기 `mood`
 
@@ -98,6 +101,10 @@
 - **이모지 금지 (v0.6.6, 사용자: "모든 이모지는 다 도트형으로"):** 새 화면에도 이모지를 쓰지 말고 `ic('이름')`. 없으면 `ICONS`에 새로 그림(같은 팔레트 `ICON_COL`, 테두리·명암 자동). ★☆→← 같은 글자 기호는 폰트로 그려지니 괜찮음. 크기는 16·24·32·48px (8칸 아이콘은 16px)
 - **승진은 팝업 알림** (사용자 요청): 마감 팝업 안 배너가 아니라 위에 따로 뜨는 카드. 그림은 팝업 크기에 맞게 32x32로 따로 그림 — P_box(물류 담당자: 손수레 상자), P_tie(점장: 셔츠·넥타이·이름표), P_superant(슈퍼개미: 망토 개미), P_key(인수 제안: 가게+열쇠)
 - 점장 발주 상품군은 글자 없이 그림으로 알아보게: 콘 아이스크림 / 김 나는 컵라면 / 구급상자 / 과자 봉지+맥주 캔
+- **자동 저장 (v0.7.1, 사용자: "끄면 처음부터 해야 하잖아"):** 아침·허브·임장·내 자산 화면과 저녁 결산 직후에 저장. 첫 화면에 [이어하기 · DAY n] + [새 게임](두 번 눌러야 지워짐).
+  **꼼수 방지:** 주식장·편의점 미니게임을 시작하는 순간 `inProgress` 저장 → 도중에 끄고 다시 열면 그날은 쉬는 날(투자한 돈 그대로, 손익·일당 없음). 같은 날 같은 종목은 가격 흐름도 같아서 다시 하면 외워서 이길 수 있기 때문.
+  저녁 결산 뒤에 끄면 다음 날 아침부터. 끝난 판(1억·파산·30일)은 저장 지움. 로그인은 다른 기기 이어하기·온라인 랭킹 때 필요
+- **개발자 모드 (v0.7.1, 사용자: 점장 테스트하려면 게임을 계속 해야 함):** `dev.js`. 테스트할 기능을 새로 만들면 `DEV_ACTIONS`에 바로가기 버튼도 같이 추가할 것
 - **첫 화면 (v0.7):** 로고 → 장면 → 랭킹(1~5위 + 맨 아래 내 최고 기록) → [게임 시작][게임 방법] 맨 아래. 게임 방법은 시트로. 로그인은 [게임 시작]에 붙이지 않음(게스트로 바로 플레이, 나중에 '온라인 랭킹에 올리기' 때 로그인 — 제안, 미정)
 - 리포트(`screenReport`)와 종료 리포트는 `reportHTML`·`drawReport` 공유. 한 번도 안 생긴 항목은 숨김.
 
@@ -157,7 +164,7 @@
 4. 랜덤은 `dayRng(salt)`(씨앗 고정)를 쓰면 같은 씨앗에서 같은 결과 → 비교 테스트 가능. salt 번호: 1 뉴스, 2 주식장, 3 저녁 결산, 5 매물, 6 복권, 7 점장 발주(동네 소식·수요), 9 봇 전용.
 5. **배포:** `main`에 push하면 GitHub Pages(https://donkeyju.github.io/Morning-trader/)에 자동 반영. 사용자가 Settings → Pages에서 직접 켜야 함(이 환경에서 Pages API는 막혀 있음).
 6. 커밋 메시지는 한국어로, 무엇을 왜 바꿨는지.
-7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.6.4). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
+7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.7). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
 
 ## 다음에 할 것
 **합의된 순서:** ① 편의점 승진 사다리 ✅ ② 주식 등급(슈퍼개미 공매도) ✅ ③ 사장(가게 인수) / 펀드매니저 ✅ (v0.7, 금리 사이클·대출 조정 포함) ④ 확장(2호점, 3종목, 자동 손절·익절)
