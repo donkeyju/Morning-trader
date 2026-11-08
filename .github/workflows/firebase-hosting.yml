@@ -1,0 +1,26 @@
+# main에 push하면 Firebase Hosting(one-more-zero.web.app)에 자동 배포
+# 필요한 것: GitHub 저장소 Settings → Secrets → Actions 에 FIREBASE_SERVICE_ACCOUNT (서비스 계정 키 JSON 전체)
+# 키가 아직 없으면 배포 단계만 건너뜀 (실패 메일이 가지 않게)
+name: Firebase Hosting 배포
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 키 있는지 확인
+        id: key
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: echo "ok=$([ -n "$SA" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - name: Firebase에 배포
+        if: steps.key.outputs.ok == 'yes'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: morning-trader
+          channelId: live

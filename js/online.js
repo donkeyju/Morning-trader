@@ -121,7 +121,7 @@ function askName(){
 /* ---------- 종료 화면의 [온라인 랭킹에 올리기] ---------- */
 async function shareScore(rec,btn,out){
   btn.disabled=true; out.textContent='연결하는 중…';
-  if(!await onlineInit()){ out.textContent='온라인에 연결할 수 없어요. 게임 사이트(donkeyju.github.io)에서 열어 주세요'; btn.disabled=false; return; }
+  if(!await onlineInit()){ out.textContent='온라인에 연결할 수 없어요. 게임 사이트(one-more-zero.web.app)에서 열어 주세요'; btn.disabled=false; return; }
   if(!ON.user){ out.textContent='Google 로그인 창을 확인해 주세요'; if(!await onlineLogin()){ out.textContent='로그인하지 않았어요'; btn.disabled=false; return; } }
   let name=myName(); if(!name) name=await askName(); if(!name){ out.textContent=''; btn.disabled=false; return; }
   out.textContent='올리는 중…';

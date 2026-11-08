@@ -1,0 +1,8 @@
+{
+  "hosting": {
+    "site": "one-more-zero",
+    "public": ".",
+    "ignore": ["firebase.json", ".firebaserc", "**/.*", "**/node_modules/**", "tools/**", "CLAUDE.md", "README.md", "firestore.rules"],
+    "headers": [{ "source": "**/*.@(js|css|html)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]
+  }
+}
