@@ -65,7 +65,7 @@ function screenTrade(){
     <div class="topbar"><span class="tm" id="tm">60.0</span><div class="tbar"><i id="tb"></i></div></div>
     <div class="breaking" id="brk"></div>
     <div class="tabs">${T.stocks.map((s,i)=>`<button class="tab" data-i="${i}"><span id="tc${i}">${s.code}</span><small id="tp${i}">+0.0%</small></button>`).join('')}</div>
-    <div class="chartwrap"><canvas id="ch" class="pix" width="240" height="140"></canvas><div class="cd" id="cd">3</div><div class="toast" id="toast"></div></div>
+    <div class="chartwrap"><canvas id="ch" class="pix" width="240" height="140"></canvas><div class="cd" id="cd">3</div><div class="limfx" id="lim"></div><div class="toast" id="toast"></div></div>
     <div class="quote"><div><div class="nm" id="qn"></div><div class="small" style="text-align:left" id="qs"></div></div><div class="pr" id="qp"></div></div>
     <div class="box pos" style="padding:8px 10px">
       <span>보유 <b id="ps"></b></span><span>평균단가 <b id="pa"></b></span>
@@ -84,6 +84,15 @@ function screenTrade(){
   const iv=setInterval(()=>{n--; if(n>0){cd.textContent=n;beep(440,.1);} else {clearInterval(iv); cd.textContent='GO!'; beep(880,.2);
       setTimeout(()=>{if(cd.textContent==='GO!')cd.textContent='';},500); T.running=true; document.getElementById('buy').disabled=false; document.getElementById('sell').disabled=false; runTicks();}},800);
 }
+// 상한가·하한가 도장 연출 (차트 위에 크게 찍혔다 사라짐)
+function limitFx(s){
+  const el=document.getElementById('lim'); if(!el) return; const up=s.lim==='up';
+  el.innerHTML=`<small>${s.name}</small>${up?'상한가!':'하한가…'}`; el.className='limfx show '+(up?'up':'down');
+  s.alertUntil=T.tick+50;
+  if(up){ beep(784,.08); setTimeout(()=>beep(1046,.08),90); setTimeout(()=>beep(1568,.3),180); buzz([60,40,60,40,120]); }
+  else { beep(330,.15,'sawtooth',.06); setTimeout(()=>beep(220,.35,'sawtooth',.06),180); buzz([200]); }
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1600);
+}
 function runTicks(){
   const dt=1/TICKS;
   T.timer=setInterval(()=>{
@@ -99,6 +108,11 @@ function runTicks(){
       if(s.dir<0&&s.shares>0&&s.price>=2*s.avg*.98){ sellCore(s,s.shares); s.marks.push({i:s.hist.length-1,t:'s'}); toast(`${s.name} 공매도 강제 청산!`); }
       s.z=.85*s.z+.527*gauss(T.rng);
       s.price*=Math.exp(s.drift*dt + s.vol*Math.sqrt(dt)*s.z*.33*STOCK_NOISE); // .33: 흐름이 이어지는 만큼 크기를 보정
+      // 상한가·하한가: 시작가의 2배 / 절반을 못 넘음. 처음 닿는 순간 도장 연출
+      const up=s.open*LIMIT_UP, dn=s.open*LIMIT_DOWN;
+      if(s.price>=up){ s.price=up; if(s.lim!=='up'){ s.lim='up'; limitFx(s); } }
+      else if(s.price<=dn){ s.price=dn; if(s.lim!=='down'){ s.lim='down'; limitFx(s); } }
+      else s.lim=null;   // 다시 풀리면 표시 지움
       s.hist.push(s.price);
       const back=s.hist[Math.max(0,s.hist.length-25)];
       if(Math.abs(s.price/back-1)>s.vol*.25) s.alertUntil=Math.max(s.alertUntil,T.tick+10);
@@ -140,7 +154,7 @@ function updTrade(){
   document.getElementById('tm').textContent=left.toFixed(1);
   document.getElementById('tb').style.width=(100*(TICKS-T.tick)/TICKS)+'%';
   T.stocks.forEach((s,i)=>{const ch=s.price/s.open-1; const tp=document.getElementById('tp'+i);
-    tp.textContent=pct(ch); tp.className=cls(ch);
+    tp.textContent=s.lim==='up'?'상한가':s.lim==='down'?'하한가':pct(ch); tp.className=cls(ch);
     document.getElementById('tc'+i).textContent=(s.shares>0?'● ':'')+(s.dir<0?'▼':'')+s.code;
     const tab=app.querySelector(`.tab[data-i="${i}"]`); tab.classList.toggle('on',i===T.active);
     tab.classList.toggle('alert',i!==T.active&&s.alertUntil>T.tick);});
@@ -149,7 +163,7 @@ function updTrade(){
   const qs=document.getElementById('qs'), qh=(s.dir<0?ic('down')+' 공매도 · ':'')+s.sec+' · '+VOL[s.v].size+' · '+VOL[s.v].label;
   if(qs.dataset.h!==qh){ qs.innerHTML=qh; qs.dataset.h=qh; }   // 바뀔 때만 다시 그림 (아이콘이 매 틱 새로 그려지지 않게)
   document.getElementById('buy').textContent=enterName(s); document.getElementById('sell').textContent=exitName(s);
-  document.getElementById('qp').innerHTML=`<span class="${cls(ch)}">${Math.round(s.price).toLocaleString()}<small>${pct(ch)}</small></span>`;
+  document.getElementById('qp').innerHTML=`<span class="${cls(ch)}">${Math.round(s.price).toLocaleString()}<small>${pct(ch)}</small></span>${s.lim?`<span class="limtag ${s.lim}">${s.lim==='up'?'상한가':'하한가'}</span>`:''}`;
   const held=posVal(s)/Math.max(1,val(s));
   document.getElementById('ps').textContent=s.shares>0?`${s.dir>0?'주식':'공매도'} ${Math.round(held*100)}%`:'현금 100%';
   document.getElementById('ps').style.color=s.shares>0?'var(--gold)':'';

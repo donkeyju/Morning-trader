@@ -48,10 +48,10 @@ window.runBot=function(strategy,runs,opt={}){
         const brk = r()<.30 ? {t:200+Math.floor(r()*200), i:Math.floor(r()*2), e:BREAKING[Math.floor(r()*BREAKING.length)].e} : null;
         picks.forEach((s,i)=>{const v=VOL[s.v], budget=invest/2;
           const dir=smart?(td.eff[s.k]>=0?1:(canShort?-1:0)):1; if(dir===0) return;
-          let drift=clamp(td.eff[s.k],-1,1)*STOCK_TREND*v.t, p=S.prices[s.k], z=0;
+          let drift=clamp(td.eff[s.k],-1,1)*STOCK_TREND*v.t, p=S.prices[s.k], z=0; const p0=p;
           const fill0=p*(1+dir*budget/v.mcap), sh=budget*(1-FEE-(dir<0?SHORT_FEE:0))/fill0;
           for(let k=1;k<=600;k++){ if(brk&&brk.t===k&&brk.i===i){drift=drift*.4+brk.e*.8; p*=Math.exp(brk.e*.03);}
-            z=.85*z+.527*gauss(r); p*=Math.exp(drift/600+v.n*Math.sqrt(1/600)*z*.33*STOCK_NOISE);
+            z=.85*z+.527*gauss(r); p*=Math.exp(drift/600+v.n*Math.sqrt(1/600)*z*.33*STOCK_NOISE); p=Math.min(Math.max(p,p0*LIMIT_DOWN),p0*LIMIT_UP);   // 상한가·하한가
             if(smart&&brk&&brk.i===i&&k===brk.t+5&&brk.e*dir<0) break; }   // 반대 방향 속보엔 바로 청산
           const amt=sh*p, sl=amt/v.mcap;
           const end=dir>0? sh*p*(1-sl)*(1-FEE) : sh*Math.max(0,2*fill0-p*(1+sl))*(1-FEE);
