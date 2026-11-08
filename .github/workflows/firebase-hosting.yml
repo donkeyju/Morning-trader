@@ -1,6 +1,5 @@
 # main에 push하면 Firebase Hosting(one-more-zero.web.app)에 자동 배포
-# 필요한 것: GitHub 저장소 Settings → Secrets → Actions 에 서비스 계정 키 JSON 전체 (이름은 무엇이든 됨)
-#   → Secrets 중에서 "type": "service_account" 가 들어 있는 값을 찾아서 씀
+# 필요한 것: GitHub 저장소 Settings → Secrets → Actions 에 FIREBASE_SERVICE_ACCOUNT 이름으로 서비스 계정 키 JSON 전체
 # 키를 못 찾으면 배포만 건너뛰고 노란 경고를 남김
 name: Firebase Hosting 배포
 on:
@@ -12,24 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 서비스 계정 키 찾기
+      - name: 서비스 계정 키 확인
         id: key
         env:
-          ALL: ${{ toJSON(secrets) }}
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.ONE_MORE_ZERO || secrets.ONEMOREZERO }}
         run: |
-          KEY=$(echo "$ALL" | jq -r 'first(to_entries[] | .value | select(type=="string") | select(test("\"type\"\\s*:\\s*\"service_account\""))) // empty')
           if [ -n "$KEY" ]; then
-            { echo "FB_SA<<EOF_SA"; echo "$KEY"; echo "EOF_SA"; } >> "$GITHUB_ENV"
             echo "ok=yes" >> "$GITHUB_OUTPUT"; echo "서비스 계정 키를 찾았어요"
           else
             echo "ok=no" >> "$GITHUB_OUTPUT"
-            echo "::warning::Secrets에서 서비스 계정 키(JSON)를 찾지 못해서 배포를 건너뛰었어요"
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT 비밀값이 없어서 배포를 건너뛰었어요"
           fi
       - name: Firebase에 배포
         if: steps.key.outputs.ok == 'yes'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ env.FB_SA }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.ONE_MORE_ZERO || secrets.ONEMOREZERO }}
           projectId: morning-trader
           channelId: live
