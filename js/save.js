@@ -6,9 +6,10 @@
              → 결과를 보고 끈 뒤 같은 날을 다시 하는 걸 막음 (같은 날 같은 종목은 가격 흐름도 같아서)
    ========================================================= */
 const SAVE_KEY='omz_save';
-function saveGame(){ try{ if(S) localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
+// cloud=true면 로그인한 사람은 Firebase에도 저장 (아침·저녁 결산 때만 → 다른 기기에서 이어하기)
+function saveGame(cloud){ try{ if(!S) return; S.savedAt=Date.now(); localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} if(cloud&&window.cloudSaveSoon) cloudSaveSoon(); }
 function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){ return null; } }
-function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} if(window.cloudClear) cloudClear(); }
 
 // 행동(주식장·편의점 미니게임)을 시작하는 순간: "진행 중"으로 저장
 function markInProgress(kind){ S.inProgress=kind; saveGame(); }

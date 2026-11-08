@@ -45,6 +45,7 @@ js/realty.js        부동산: 매물, 지도, 집 안, 임장, 내 자산
 js/stock.js         주식장: 종목 고르기, 1분 미니게임
 js/biz.js           사장(가게 인수·손익표)·펀드매니저
 js/save.js          자동 저장·이어하기 (도중에 끄면 그날은 쉬는 날)
+js/online.js        Firebase 로그인·온라인 랭킹·다른 기기 이어하기
 js/dev.js           개발자 모드 (첫 화면 로고 5번 탭)
 js/job.js           편의점 (계산 · 물류 · 점장 발주)
 js/logo.js          타이틀 도트 로고 (ONE MORE ZERO)

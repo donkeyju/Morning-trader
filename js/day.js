@@ -22,15 +22,33 @@ function screenTitle(){
     beep(880); clearSave(); newRun(); startDay(); };
   const rs=document.getElementById('resume'); if(rs) rs.onclick=()=>{beep(880); resumeGame();};
   document.getElementById('how').onclick=()=>{beep(520);showHowTo();};
+  fillOnlineRank();
 }
 // 랭킹 상자: 위 5등까지 + 맨 아래 내 최고 기록
 function rankHTML(){
   const recs=loadRecords(), best=recs[0], d=t=>{const x=new Date(t);return `${x.getMonth()+1}/${x.getDate()}`;};
   const rows=recs.slice(0,5).map((r,i)=>`<div class="rk${i===0?' top':''}"><span class="no">${i+1}</span><span class="who">${d(r.at)} 도전</span><b class="${r.win?'gold':''}">${recText(r)}</b></div>`).join('');
-  return `<div class="rank box"><div class="rh"><span>${ic('trophy')} 랭킹</span><small>지금은 이 기기 기록 · 온라인 랭킹은 로그인과 함께</small></div>
-    ${rows||'<div class="rk empty">아직 기록이 없어요. 첫 판을 시작해 보세요!</div>'}
-    <div class="mybest"><span>내 최고 기록</span><b>${best?recText(best):'-'}</b></div></div>`;
+  return `<div class="rank box" id="rankbox"><div class="rh"><span>${ic('trophy')} 랭킹</span><small id="rkmode">이 기기 기록 · 온라인 연결 확인 중…</small></div>
+    <div id="rkrows">${rows||'<div class="rk empty">아직 기록이 없어요. 첫 판을 시작해 보세요!</div>'}</div>
+    <div class="mybest"><span>내 최고 기록</span><b id="rkmine">${best?recText(best):'-'}</b></div></div>`;
 }
+// 온라인 랭킹으로 바꿔 그리기 (Firebase에 연결되면)
+async function fillOnlineRank(){
+  const mode=()=>document.getElementById('rkmode');
+  if(!await onlineInit()){ if(mode()) mode().textContent='이 기기 기록 · 온라인 랭킹은 게임 사이트에서'; return; }
+  try{
+    const top=await fetchTop(5), box=document.getElementById('rkrows'); if(!box) return;
+    box.innerHTML=top.map((r,i)=>`<div class="rk${i===0?' top':''}${ON.user&&r.id===ON.user.uid?' me':''}"><span class="no">${i+1}</span><span class="who">${esc(r.name)}</span><b class="${r.win?'gold':''}">${recText(r)}</b></div>`).join('')
+      ||'<div class="rk empty">아직 온라인 기록이 없어요. 첫 번째 주인공이 되어 보세요!</div>';
+    mode().innerHTML=ON.user?`온라인 · ${esc(myName()||'닉네임 없음')} <button class="linkbtn" id="rklogout">로그아웃</button>`:`온라인 랭킹 · <button class="linkbtn" id="rklogin">Google 로그인</button>`;
+    const li=document.getElementById('rklogin'); if(li) li.onclick=()=>{beep(660); onlineLogin();};
+    const lo=document.getElementById('rklogout'); if(lo) lo.onclick=()=>{beep(440); onlineLogout();};
+    const mine=document.getElementById('rkmine');
+    if(ON.user&&ON.mine) mine.innerHTML=`${recText(ON.mine)} · 전체 ${await rankOf(ON.mine.score)}위`;
+    else if(!ON.user) mine.innerHTML=`${mine.textContent} <small style="color:var(--dim)">(로그인하면 온라인에 올릴 수 있어요)</small>`;
+  }catch(e){ if(mode()) mode().textContent='온라인 랭킹을 불러오지 못했어요 · 이 기기 기록'; }
+}
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // 게임 방법 (예전 첫 화면의 규칙 설명)
 function showHowTo(){
   const d=document.createElement('div'); d.className='sheet';
@@ -117,7 +135,7 @@ function startDay(){
     if(pick.length<2) pick.push(genListing(lr,99,{r:'local',t:'villa',sz:'s'})); // 돈이 적어도 하나는 살 수 있게
     for(const c of cand){ if(pick.length>=4)break; if(!pick.includes(c)) pick.push(c); }
     S.listings=shuffle(pick,lr).map((L,i)=>({...L,id:`D${S.day}-${i}`})); S.visits=2;}
-  S.phase='morning'; S.inProgress=null; S.forfeit=false; saveGame();   // 아침마다 자동 저장
+  S.phase='morning'; S.inProgress=null; S.forfeit=false; saveGame(true);   // 아침마다 자동 저장
   screenNews();
 }
 
@@ -304,7 +322,7 @@ function finishDay(result){
   S.history.push(H);
   // ── 승진 / 등급 ──  (좋은 근무·좋은 장을 누적으로 세다가 need에 닿으면 다음 단계)
   if(S.forfeit) logs.unshift(`${ic('warn')} 하던 걸 도중에 그만둬서 이날은 쉬는 날로 처리됐어요`);
-  S.phase='dayDone'; saveGame();   // 저녁 결산이 끝난 상태를 저장 (다시 열면 다음 날 아침)
+  S.phase='dayDone'; saveGame(true);   // 저녁 결산이 끝난 상태를 저장 (다시 열면 다음 날 아침)
   const promo=[];
   if(S.action==='job'&&S.jobGood){ const c=S.career; c.good++;
     if(c.stage<CAREER.length-1&&c.good>=CAREER[c.stage].need){ c.stage++; c.good=0; promo.push({art:CAREER[c.stage].art, head:'승진!', title:`${withRo(lvName(CAREER,c.stage))} 승진`, sub:`일당 ${won(CAREER[c.stage].pay[0])}~${won(CAREER[c.stage].pay[1])}`}); }
@@ -379,12 +397,14 @@ function screenEnd(kind){
     <canvas id="sc" class="pix" width="160" height="80"></canvas>
     <div class="box" style="text-align:center;line-height:1.7">${t[1]}<br><span class="small">시작 1,000만 원 → 최종 ${won(net)} (${pct(net/START_MONEY-1)})</span></div>
     ${best?`<div class="small">내 최고 기록: ${recText(best)}</div>`:''}
+    ${kind!=='broke'&&!S.dev?`<button class="btn" id="share" style="font-size:18px">${ic('trophy',24)} 온라인 랭킹에 올리기</button><div class="small" id="shareout"></div>`:''}
     ${reportHTML()}
     <button class="btn" id="again">다시 도전</button><button class="btn sec" id="home">처음 화면</button>`;
   drawReport();
   startScene(document.getElementById('sc'),kind==='win'?'evening':'night',kind==='win'?'happy':'sad');
   document.getElementById('again').onclick=()=>{beep(880);newRun();startDay();};
   document.getElementById('home').onclick=()=>{beep(660);screenTitle();};
+  const sh=document.getElementById('share'); if(sh){ const rec={win:kind==='win',days:S.day,money:net}; sh.onclick=()=>{beep(880); shareScore(rec,sh,document.getElementById('shareout'));}; }
 }
 
 

@@ -18,7 +18,7 @@
 
 ## 파일 구조
 빌드 도구 없이 브라우저에서 바로 돌아가요. 모든 함수와 상수는 **전역**이라 파일끼리 그냥 서로 불러 써요.
-`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → biz → save → dev → logo → icons → day (day.js 마지막 줄에서 게임 시작).
+`index.html`의 `<script>` **순서가 중요해요**: data → news → core → realty → stock → job → biz → save → online → dev → logo → icons → day (day.js 마지막 줄에서 게임 시작).
 
 | 파일 | 내용 | 주요 함수·상수 |
 |---|---|---|
@@ -28,6 +28,8 @@
 | `js/news.js` | **뉴스 데이터 전부** (158개 + 금리 기사) | `STOCK_NEWS`(79) `REALTY_NEWS`(34) `CRASH_NEWS`(5) `BREAKING`(15) `LOCAL_NEWS`(25) `RATE_DECISION` `RATE_HINTS` |
 | `js/biz.js` | **사장(가게)·펀드매니저** — 정산 식은 게임과 봇이 같이 씀 | `storeDemand` `storeSettle(가게,적중률|null,수요)`(손익표) `storeEquity` `fundSettle(펀드,수익률|null)` `screenContract`(계약서·서명) |
 | `js/save.js` | **자동 저장·이어하기** (이 기기, 로그인 없이) | `saveGame` `loadSave` `clearSave` `markInProgress` `resumeGame` `nextDay`(마감 팝업 [다음 날]과 같이 씀) |
+| `js/online.js` | **Firebase: Google 로그인·온라인 랭킹·다른 기기 이어하기** (v0.8) | `FB_CONFIG`(프로젝트 morning-trader) `onlineInit`(SDK 13.2.0을 필요할 때 불러옴, 실패하면 오프라인) `onlineLogin`(팝업, 막히면 리다이렉트) `fetchTop` `fetchMine` `rankOf`(나보다 점수 높은 수+1) `uploadScore` `scoreOf` `cloudSaveSoon` `cloudPull` `askName`(닉네임) `shareScore`(종료 화면 버튼) |
+| `firestore.rules` | Firestore 보안 규칙 (콘솔 [규칙] 탭에 붙여 넣는 원본) | 본인 기록만 쓰기, 더 좋은 기록만, 1억 기록은 8일 이상·1억 이상 |
 | `js/dev.js` | **개발자 모드** (사용자 테스트용) | 첫 화면 로고 5번 탭 또는 `?dev=1` → 오른쪽 아래 DEV 버튼 → 패널(돈·날짜·편의점 단계·주식 등급·금리). 건드린 판은 `S.dev=true` → 랭킹 제외. 항목 추가는 `DEV_ACTIONS`에 |
 | `js/core.js` | 랜덤, 숫자 표시, 효과음, 게임 상태, 도트 주인공·사무실 | `mulberry32` `dayRng` `won` `pct` `beep` `newRun`(상태 S 초기화) `saveRate` `loanRate(ltv)` `propRate(p)` `mktRent` `findP` `sellP` `netWorth` `hud` `animate` `startScene` `SPR` |
 | `js/realty.js` | 부동산 전부 | `genListing` `startMap` `drawIcon` `startInterior` `locHTML` `FEATS` `featHTML` `screenListings`(임장 날) `screenAssets`(내 자산) `screenVisit` `buyHTML` `bindBuy` |
@@ -39,13 +41,21 @@
 | `js/day.js` | 하루 흐름 | `screenTitle` `startDay`(분위기·뉴스·매물 생성) `screenNews` `screenHub`(오늘 뭐 할까) `screenReport`(게임 중 리포트) `LOTTO_*` `finishDay`(저녁 결산) `screenDayEnd`(마감 팝업) `screenEnd` `reportHTML` `drawReport` |
 | `tools/balance-bot.js` | 밸런스 봇 (게임 함수를 써서 30일 자동 플레이) | `runBot("skilled"/"average", 판수)` |
 | `tools/run-balance.py` | 봇 실행기 | |
-| `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 | |
+| `tools/smoke-test.py` | 전체 흐름 자동 테스트 + 스크린샷 (온라인 없이) | |
+| `tools/online-test.py` + `tools/fake-firebase.js` | 온라인 흐름 테스트 (가짜 Firebase, 실제 서버 접속 안 함) | 로그인 → 랭킹 → 닉네임 → 올리기 → 순위 → 클라우드 이어하기 |
 
 ### 상태 객체
 - `S` (core.js `newRun`): 한 판 전체 상태. `day` `cash` `base`(기준금리) `prices` `props`(보유 집) `listings`(오늘 매물) `watch`(관심 매물 3일) `visits` `action`(오늘 행동) `lotto` `jobPay` `jobGood` `career{stage,good}` `inv{tier,good}` `dir`(종목별 매수1/공매도−1) `newsSeen`(뉴스 제목별 본 횟수) `rateCycle`(up/flat/down) `store`{value,loan,ltv} `storeOffer` `storeQ`(오늘 발주 적중률) `fund`{size} `contractLtv` `phase`(morning/dayDone) `inProgress`(stock/job) `forfeit` `dev` `history`(하루 기록 → 종료 리포트) `reUnlocked` `hints`
 - `T` (stock.js): 1분 장 진행 상태. `J` (job.js): 알바 진행 상태.
 - 저장: `localStorage` `omz_save`(지금 판, save.js) / `omz_dev`(개발자 모드 켬)
-- 기록·랭킹: `localStorage` `omz_records`(이 기기, 최대 20판) — `loadRecords` `saveRecord` `recText` (core.js). 나중에 로그인 + Firebase로 바꿀 자리
+- 기록·랭킹: `localStorage` `omz_records`(이 기기, 최대 20판) — `loadRecords` `saveRecord` `recText` (core.js). 온라인이 되면 첫 화면이 Firebase 랭킹으로 바뀜
+- **온라인 (v0.8, Firebase 프로젝트 `morning-trader`):** Firestore `scores/{uid}` {name, win, days, money, score, at, ver} 한 사람당 최고 기록 1개 / `saves/{uid}` {data(S의 JSON), day, savedAt}
+  점수 `scoreOf` = 1억 달성이면 1e12 + (31−날짜)×1e10 + 순자산(최대 99억), 아니면 순자산 → orderBy('score') 하나로 정렬 (복합 색인 필요 없음)
+  로그인은 [게임 시작]에 붙이지 않음(사용자 합의) — 첫 화면 랭킹 상자의 [Google 로그인] 또는 종료 화면 [온라인 랭킹에 올리기]에서. 닉네임 1~12자(실명 대신), `omz_name`
+  클라우드 저장은 아침·저녁 결산 때만(`saveGame(true)`), 로그인하면 더 새로운 쪽을 가져옴. 개발자 모드 판은 올리기 버튼 없음
+  **대화 속 게임 페이지(아티팩트)는 외부 서버가 막혀서 항상 오프라인 모드**. 실제 확인은 GitHub Pages에서
+  한계: 계산이 휴대폰에서 일어나서 개발자 도구로 점수 조작 가능 → 지금은 규칙으로 말이 안 되는 값만 막음. 제대로 하려면 서버가 판을 다시 계산하는 Cloud Functions 필요
+  Firebase 콘솔에서 사용자가 할 일: Authentication Google 사용 설정, 승인된 도메인에 donkeyju.github.io, Firestore(서울, 프로덕션), `firestore.rules` 게시. 애널리틱스는 안 씀
 - `S.today` (day.js `startDay`): 오늘 뉴스 `items`, 섹터 영향 `eff`, 부동산 영향 `reEff` `reTypeEff` `rentEff` `rentTypeEff`, 분위기 `mood`
 
 ## 하루 흐름
@@ -168,7 +178,7 @@
 
 ## 다음에 할 것
 **합의된 순서:** ① 편의점 승진 사다리 ✅ ② 주식 등급(슈퍼개미 공매도) ✅ ③ 사장(가게 인수) / 펀드매니저 ✅ (v0.7, 금리 사이클·대출 조정 포함) ④ 확장(2호점, 3종목, 자동 손절·익절)
-- 그다음: **로그인 + Firebase 온라인 랭킹** (사용자 희망, GitHub Pages 버전에서만 — 아티팩트는 외부 서버 막힘) → **게임 수익구조** 검토
+- **로그인 + Firebase 온라인 랭킹 ✅ (v0.8)** → 다음: **게임 수익구조** 검토
 - 랭킹 공정성: 같은 씨앗이면 두 번째 판에 가격 흐름을 외울 수 있음 → 뉴스·매물은 같게, 1분 장 흔들림만 판마다 다르게 (제안)
 - **2호점(상가에 가게 차리기) 보류 (사용자 결정, v0.7):** 시뮬레이션에서 30일 안엔 효과가 거의 없었음 — 사업형 봇 6,521만 → 상가 가게 6,490만, 상가를 다 사면 5,863만(손해), 승진을 3/2/3으로 빠르게 해도 6,713만, 1억 0%.
   이유: 사장이 13일차라 시간이 모자람, 계약금 뒤 현금 부족(상가 평균 0.6개), 상가 사는 날 출근 못 함, 가게 수입은 복리가 안 됨. 승진을 빠르게 하면 섞기 봇이 74%→40%로 떨어지는 부작용도.
@@ -181,5 +191,4 @@
 - 블랙먼데이 때 집값도 빠지게 해서 "언제 팔지"가 중요해지게 (지금은 집을 한 번도 안 팔아도 이김) — 단, 신경 쓸 거리 늘리지 않는 선에서
 - 적금이 거의 의미 없음(30일 수십만 원) → 역할 재검토
 - 금·달러 안전자산, 공모주 청약, 코인, 사업
-- 온라인 랭킹: 첫 화면 자리는 만들어 둠(지금은 이 기기 기록). 로그인·Firebase 연동은 다음 단계
 - 앱 배포: Capacitor로 감싸기, 종목 이름 KIPRIS 상표 확인

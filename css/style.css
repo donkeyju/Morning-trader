@@ -250,3 +250,9 @@ h2.sh canvas.pi{vertical-align:-4px}
 .devrow{display:flex;flex-wrap:wrap;gap:6px}
 .devrow button{font-size:12px;padding:6px 8px;background:#3a3260;color:#fff;border:2px solid var(--line);cursor:pointer}
 .devtoast{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:50;background:#d7263d;color:#fff;font-family:var(--pix);font-size:18px;padding:10px 14px;border:3px solid var(--line)}
+
+/* 온라인 랭킹 (online.js) */
+.rk.me{background:#3a3260}
+.rank .rh .linkbtn{font-size:11px;padding:0;margin-left:2px}
+.nick{width:100%;box-sizing:border-box;font-family:var(--pix);font-size:18px;padding:10px;border:3px solid var(--line);background:#fffaf0;color:#2a1d05;text-align:center}
+#shareout{min-height:18px}

@@ -1,0 +1,36 @@
+rules_version = '2';
+// ONE MORE ZERO — Firestore 보안 규칙
+// Firebase 콘솔 → Firestore Database → [규칙] 탭에 통째로 붙여 넣고 [게시]
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 랭킹: 누구나 읽기. 쓰기는 로그인한 본인 기록만, 말이 안 되는 값은 거절
+    match /scores/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && validScore(request.resource.data)
+        && (resource == null || request.resource.data.score > resource.data.score);   // 더 좋은 기록일 때만
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 다른 기기에서 이어하기: 본인만 읽고 쓰기
+    match /saves/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid
+        && (request.method == 'delete' || request.resource.data.data.size() < 900000);
+    }
+  }
+
+  function validScore(d) {
+    return d.keys().hasOnly(['name', 'win', 'days', 'money', 'score', 'at', 'ver'])
+      && d.name is string && d.name.size() >= 1 && d.name.size() <= 12
+      && d.win is bool
+      && d.days is int && d.days >= 1 && d.days <= 30
+      && d.money is number && d.money >= 0 && d.money < 10000000000
+      && d.score is number && d.score >= 0 && d.score < 1400000000000
+      && d.at == request.time
+      && d.ver is string
+      // 1억 달성 기록은 순자산이 1억 이상이고, 너무 빠르면(8일 미만) 거절
+      && (d.win == false || (d.money >= 100000000 && d.days >= 8));
+  }
+}
