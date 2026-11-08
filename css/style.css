@@ -217,6 +217,13 @@ h2.sh canvas.pi{vertical-align:-4px}
 .rk{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed #3a3260;font-size:13px}
 .rk .no{font-family:var(--pix);font-size:12px;color:var(--dim);text-align:center} .rk.top .no{color:var(--gold)}
 .rk b{font-weight:400;font-family:var(--pix);font-size:12px} .rk b.gold{color:var(--gold)}
+.rk .mix,.rk .mixwrap{grid-column:2 / 4}
+.rk .mix{display:flex;align-items:center;gap:6px;margin-top:-2px}
+.rk .mbar{display:flex;flex:0 0 64px;height:6px;background:#3a3260;overflow:hidden} .rk .mbar i{display:block;height:100%}
+.rk .mix small{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rk .mix em{font-style:normal}
+.rk .mixd{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--dim);padding:4px 0 2px}
+.rk .mixd .sw{display:inline-block;width:7px;height:7px;margin-right:3px} .rk .mixd b{font-family:var(--pix);font-size:12px;font-weight:400}
+.rk.tap{cursor:pointer}
 .rk.empty{display:block;text-align:center;color:var(--dim);padding:10px 0}
 .mybest{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:8px 10px;background:#4a3f7c;border:2px solid var(--line);font-size:13px}
 .mybest b{font-family:var(--pix);font-weight:400;font-size:12px;color:var(--gold)}

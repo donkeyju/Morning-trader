@@ -71,9 +71,34 @@ function loadRecords(){
     return r.sort(recSort);
   }catch(e){ return []; }
 }
+// ── 무엇으로 벌었나 (v0.8.1, 사용자 요청: 랭킹에서 경쟁자가 뭘로 벌었는지 보이게)
+// mixOf: 한 판 동안 항목별로 번 돈 합계 {stock:…, rent:…} (0인 항목은 뺌, 원 단위 정수)
+function mixOf(H){ const m={}; (H||[]).forEach(h=>MIX_KEYS.forEach(k=>{ if(h[k]) m[k]=(m[k]||0)+h[k]; }));
+  for(const k in m){ m[k]=Math.round(m[k]); if(!m[k]) delete m[k]; } return m; }
+const MIX_KEYS=['stock','fund','rent','loan','re','deal','job','store','save','lotto'];
+// 막대에 쓰는 3칸: 주식(+펀드) / 부동산(월세−이자+집값+매매) / 편의점(일당+가게). 적금·복권은 기타라 막대엔 안 넣음
+const MIX_GROUPS=[['s','주식','#ff5a5f',['stock','fund']],['r','부동산','#4ea8ff',['rent','loan','re','deal']],['c','편의점','#ff9f43',['job','store']]];
+function mixShares(m){ if(!m) return null;
+  const g=MIX_GROUPS.map(([id,n,col,ks])=>({id,n,col,v:ks.reduce((a,k)=>a+(Number(m[k])||0),0)}));
+  const pos=g.reduce((a,x)=>a+Math.max(0,x.v),0); if(pos<=0) return {g,pos:0};
+  g.forEach(x=>x.p=Math.max(0,x.v)/pos*100);
+  // 반올림해도 합이 100이 되게 (가장 큰 칸에서 맞춤)
+  const r=g.map(x=>Math.round(x.p)), d=100-r.reduce((a,b)=>a+b,0); if(d){ const i=r.indexOf(Math.max(...r)); r[i]+=d; }
+  g.forEach((x,i)=>x.r=r[i]); return {g,pos}; }
+// 랭킹 한 줄 아래에 붙는 막대 + "주식 62 · 부동산 31"
+function mixBarHTML(m){ const s=mixShares(m); if(!s) return '';
+  if(!s.pos) return '<div class="mix"><small>번 돈 없음</small></div>';
+  const on=s.g.filter(x=>x.r>0).sort((a,b)=>b.r-a.r);
+  return `<div class="mix"><span class="mbar">${on.map(x=>`<i style="width:${x.p}%;background:${x.col}"></i>`).join('')}</span>
+    <small>${on.map(x=>`<em style="color:${x.col}">${x.n}</em> ${x.r}`).join(' · ')}</small></div>`; }
+// 줄을 누르면 펼쳐지는 자세한 내역 (CAT_STYLE 이름·색 재사용, 손해는 빨간 숫자)
+function mixDetailHTML(m){ if(!m) return '';
+  const rows=CAT_STYLE.filter(([k])=>Number(m[k])).sort((a,b)=>Math.abs(m[b[0]])-Math.abs(m[a[0]]))
+    .map(([k,n,c])=>`<span><i class="sw" style="background:${c}"></i>${n} <b class="${cls(Number(m[k]))}">${won(Number(m[k]),true)}</b></span>`).join('');
+  return `<div class="mixd">${rows||'내역 없음'}</div>`; }
 function saveRecord(win,days,money){
   if(S&&S.dev) return;   // 개발자 모드로 건드린 판은 랭킹에 안 넣음
-  try{ const r=loadRecords(); r.push({win,days,money,at:Date.now()}); r.sort(recSort);
+  try{ const r=loadRecords(); r.push({win,days,money,at:Date.now(),mix:mixOf(S&&S.history)}); r.sort(recSort);
     localStorage.setItem('omz_records',JSON.stringify(r.slice(0,20))); }catch(e){}
 }
 const loadBest=()=>loadRecords()[0]||null;

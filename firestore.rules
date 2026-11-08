@@ -22,7 +22,8 @@ service cloud.firestore {
   }
 
   function validScore(d) {
-    return d.keys().hasOnly(['name', 'win', 'days', 'money', 'score', 'at', 'ver'])
+    return d.keys().hasOnly(['name', 'win', 'days', 'money', 'score', 'at', 'ver', 'mix'])
+      && (!('mix' in d) || (d.mix is map && d.mix.size() <= 10))   // 무엇으로 벌었나 (v0.8.1)
       && d.name is string && d.name.size() >= 1 && d.name.size() <= 12
       && d.win is bool
       && d.days is int && d.days >= 1 && d.days <= 30

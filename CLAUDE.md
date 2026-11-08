@@ -49,13 +49,15 @@
 - `T` (stock.js): 1분 장 진행 상태. `J` (job.js): 알바 진행 상태.
 - 저장: `localStorage` `omz_save`(지금 판, save.js) / `omz_dev`(개발자 모드 켬)
 - 기록·랭킹: `localStorage` `omz_records`(이 기기, 최대 20판) — `loadRecords` `saveRecord` `recText` (core.js). 온라인이 되면 첫 화면이 Firebase 랭킹으로 바뀜
-- **온라인 (v0.8, Firebase 프로젝트 `morning-trader`):** Firestore `scores/{uid}` {name, win, days, money, score, at, ver} 한 사람당 최고 기록 1개 / `saves/{uid}` {data(S의 JSON), day, savedAt}
+- **온라인 (v0.8, Firebase 프로젝트 `morning-trader`):** Firestore `scores/{uid}` {name, win, days, money, score, at, ver, mix} 한 사람당 최고 기록 1개 / `saves/{uid}` {data(S의 JSON), day, savedAt}
   점수 `scoreOf` = 1억 달성이면 1e12 + (31−날짜)×1e10 + 순자산(최대 99억), 아니면 순자산 → orderBy('score') 하나로 정렬 (복합 색인 필요 없음)
+  **무엇으로 벌었나 (v0.8.1, 사용자 요청: 경쟁자가 뭘로 벌었는지 보이게):** 기록에 `mix`(S.history 항목별 합계, `mixOf`)를 같이 저장·업로드. 랭킹 줄 아래 막대 3칸 `MIX_GROUPS`: 주식(주식+펀드) / 부동산(월세−이자+집값+매매) / 편의점(일당+가게), 적금·복권은 막대에서 뺌, 손해 칸은 0%. 줄을 누르면 항목별 자세히(`mixDetailHTML`). mix 없는 예전 기록은 막대 없음
+  닉네임: [Google 로그인] 직후 없으면 바로 정하기. **닉네임 바꾸기는 안 만듦(사용자: 나중에 필요하면)**
   로그인은 [게임 시작]에 붙이지 않음(사용자 합의) — 첫 화면 랭킹 상자의 [Google 로그인] 또는 종료 화면 [온라인 랭킹에 올리기]에서. 닉네임 1~12자(실명 대신), `omz_name`
   클라우드 저장은 아침·저녁 결산 때만(`saveGame(true)`), 로그인하면 더 새로운 쪽을 가져옴. 개발자 모드 판은 올리기 버튼 없음
-  **대화 속 게임 페이지(아티팩트)는 외부 서버가 막혀서 항상 오프라인 모드**. 실제 확인은 GitHub Pages에서
+  **대화 속 게임 페이지(아티팩트)는 외부 서버가 막혀서 항상 오프라인 모드**. 실제 확인은 https://one-more-zero.web.app 에서
   한계: 계산이 휴대폰에서 일어나서 개발자 도구로 점수 조작 가능 → 지금은 규칙으로 말이 안 되는 값만 막음. 제대로 하려면 서버가 판을 다시 계산하는 Cloud Functions 필요
-  Firebase 콘솔에서 사용자가 할 일: Authentication Google 사용 설정, 승인된 도메인에 donkeyju.github.io, Firestore(서울, 프로덕션), `firestore.rules` 게시. 애널리틱스는 안 씀
+  Firebase 콘솔에서 사용자가 할 일: Authentication Google 사용 설정, 승인된 도메인에 one-more-zero.web.app, Firestore(서울, 프로덕션), `firestore.rules` 게시. 애널리틱스는 안 씀
 - `S.today` (day.js `startDay`): 오늘 뉴스 `items`, 섹터 영향 `eff`, 부동산 영향 `reEff` `reTypeEff` `rentEff` `rentTypeEff`, 분위기 `mood`
 
 ## 하루 흐름
@@ -172,7 +174,10 @@
 2. **밸런스 확인:** 결산·가격·수익 관련 숫자를 바꾸면 `python tools/run-balance.py`. 결산 식을 바꾸면 `tools/balance-bot.js`의 같은 식도 맞춰서 고칠 것.
 3. 테스트 실행 환경: `pip install playwright`. 시스템 크롬을 쓰려면 `CHROME_PATH=/usr/bin/google-chrome`.
 4. 랜덤은 `dayRng(salt)`(씨앗 고정)를 쓰면 같은 씨앗에서 같은 결과 → 비교 테스트 가능. salt 번호: 1 뉴스, 2 주식장, 3 저녁 결산, 5 매물, 6 복권, 7 점장 발주(동네 소식·수요), 9 봇 전용.
-5. **배포:** `main`에 push하면 GitHub Pages(https://donkeyju.github.io/Morning-trader/)에 자동 반영. 사용자가 Settings → Pages에서 직접 켜야 함(이 환경에서 Pages API는 막혀 있음).
+5. **배포:** `main`에 push하면 GitHub Actions(`.github/workflows/firebase-hosting.yml`)가 **Firebase Hosting 사이트 `one-more-zero` → https://one-more-zero.web.app** 에 자동 배포 (사용자: 주소에 깃 아이디가 보이는 게 싫다고 함).
+   GitHub 비밀값 `FIREBASE_SERVICE_ACCOUNT`(서비스 계정 JSON). 서비스 계정 역할: Firebase 호스팅 관리자 등 + **서비스 사용량 소비자**(없으면 403 Permission denied to get service). `toJSON(secrets)`로 전체 비밀값을 읽으면 GitHub이 승인 대기(action_required)로 막음.
+   이 환경에서 그 사이트에 직접 접속은 안 됨(허용 목록 밖) → `gh run view --log`로 배포 결과 확인. GitHub Pages(donkeyju.github.io)도 아직 같이 켜져 있음.
+   **`firestore.rules`를 바꾸면 사용자가 콘솔에 다시 게시해야 함** (자동 배포 안 함).
 6. 커밋 메시지는 한국어로, 무엇을 왜 바꿨는지.
 7. 기획 문서는 claude.ai 프로젝트 "모바일게임 프로젝트1"의 `기획/게임컨셉_v0.2.md`에도 있음(내용은 v0.7). 큰 결정을 하면 이 파일과 그 문서를 같이 갱신.
 

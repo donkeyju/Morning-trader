@@ -22,26 +22,34 @@ function screenTitle(){
     beep(880); clearSave(); newRun(); startDay(); };
   const rs=document.getElementById('resume'); if(rs) rs.onclick=()=>{beep(880); resumeGame();};
   document.getElementById('how').onclick=()=>{beep(520);showHowTo();};
-  fillOnlineRank();
+  bindRkRows(); fillOnlineRank();
 }
 // 랭킹 상자: 위 5등까지 + 맨 아래 내 최고 기록
 function rankHTML(){
   const recs=loadRecords(), best=recs[0], d=t=>{const x=new Date(t);return `${x.getMonth()+1}/${x.getDate()}`;};
-  const rows=recs.slice(0,5).map((r,i)=>`<div class="rk${i===0?' top':''}"><span class="no">${i+1}</span><span class="who">${d(r.at)} 도전</span><b class="${r.win?'gold':''}">${recText(r)}</b></div>`).join('');
+  const rows=recs.slice(0,5).map((r,i)=>rkRow(r,i,`${d(r.at)} 도전`)).join('');
   return `<div class="rank box" id="rankbox"><div class="rh"><span>${ic('trophy')} 랭킹</span><small id="rkmode">이 기기 기록 · 온라인 연결 확인 중…</small></div>
     <div id="rkrows">${rows||'<div class="rk empty">아직 기록이 없어요. 첫 판을 시작해 보세요!</div>'}</div>
     <div class="mybest"><span>내 최고 기록</span><b id="rkmine">${best?recText(best):'-'}</b></div></div>`;
 }
+// 랭킹 한 줄: 순위 · 이름 · 기록, 아래에 무엇으로 벌었나 막대. 누르면 자세한 내역이 펼쳐짐
+function rkRow(r,i,who,me){
+  const has=r.mix&&Object.keys(r.mix).length;
+  return `<div class="rk${i===0?' top':''}${me?' me':''}${has?' tap':''}"><span class="no">${i+1}</span><span class="who">${who}</span><b class="${r.win?'gold':''}">${recText(r)}</b>
+    ${has?`${mixBarHTML(r.mix)}<div class="mixwrap" hidden>${mixDetailHTML(r.mix)}</div>`:''}</div>`; }
+function bindRkRows(){ document.querySelectorAll('#rkrows .rk.tap').forEach(el=>el.onclick=()=>{ const w=el.querySelector('.mixwrap'); w.hidden=!w.hidden; beep(w.hidden?440:660,.04); }); }
 // 온라인 랭킹으로 바꿔 그리기 (Firebase에 연결되면)
 async function fillOnlineRank(){
   const mode=()=>document.getElementById('rkmode');
   if(!await onlineInit()){ if(mode()) mode().textContent='이 기기 기록 · 온라인 랭킹은 게임 사이트에서'; return; }
   try{
     const top=await fetchTop(5), box=document.getElementById('rkrows'); if(!box) return;
-    box.innerHTML=top.map((r,i)=>`<div class="rk${i===0?' top':''}${ON.user&&r.id===ON.user.uid?' me':''}"><span class="no">${i+1}</span><span class="who">${esc(r.name)}</span><b class="${r.win?'gold':''}">${recText(r)}</b></div>`).join('')
+    box.innerHTML=top.map((r,i)=>rkRow(r,i,esc(r.name),ON.user&&r.id===ON.user.uid)).join('')
       ||'<div class="rk empty">아직 온라인 기록이 없어요. 첫 번째 주인공이 되어 보세요!</div>';
     mode().innerHTML=ON.user?`온라인 · ${esc(myName()||'닉네임 없음')} <button class="linkbtn" id="rklogout">로그아웃</button>`:`온라인 랭킹 · <button class="linkbtn" id="rklogin">Google 로그인</button>`;
-    const li=document.getElementById('rklogin'); if(li) li.onclick=()=>{beep(660); onlineLogin();};
+    bindRkRows();
+    // 로그인하고 닉네임이 없으면 바로 정하기 (v0.8.1)
+    const li=document.getElementById('rklogin'); if(li) li.onclick=async()=>{beep(660); if(await onlineLogin()&&!myName()&&await askName()&&document.getElementById('rankbox')) screenTitle();};
     const lo=document.getElementById('rklogout'); if(lo) lo.onclick=()=>{beep(440); onlineLogout();};
     const mine=document.getElementById('rkmine');
     if(ON.user&&ON.mine) mine.innerHTML=`${recText(ON.mine)} · 전체 ${await rankOf(ON.mine.score)}위`;
@@ -404,7 +412,7 @@ function screenEnd(kind){
   startScene(document.getElementById('sc'),kind==='win'?'evening':'night',kind==='win'?'happy':'sad');
   document.getElementById('again').onclick=()=>{beep(880);newRun();startDay();};
   document.getElementById('home').onclick=()=>{beep(660);screenTitle();};
-  const sh=document.getElementById('share'); if(sh){ const rec={win:kind==='win',days:S.day,money:net}; sh.onclick=()=>{beep(880); shareScore(rec,sh,document.getElementById('shareout'));}; }
+  const sh=document.getElementById('share'); if(sh){ const rec={win:kind==='win',days:S.day,money:net,mix:mixOf(S.history)}; sh.onclick=()=>{beep(880); shareScore(rec,sh,document.getElementById('shareout'));}; }
 }
 
 

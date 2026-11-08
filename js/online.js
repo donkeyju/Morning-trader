@@ -18,7 +18,7 @@ const FB_CONFIG = {
   appId: "1:940305390988:web:5f9a318ebaa9e3e0954aa9",
 };
 const FB_VER = '13.2.0';
-const GAME_VER = '0.8';
+const GAME_VER = '0.8.1';
 const ON = { tried:false, ready:false, user:null, A:null, F:null, auth:null, db:null, mine:null, err:null };
 
 // 순위용 점수 하나로 합치기: 1억 달성한 판이 무조건 위, 빨리 달성할수록 위, 같으면 순자산 많은 순
@@ -78,6 +78,7 @@ async function uploadScore(rec,name){
   const sc=scoreOf(rec), old=await fetchMine();
   if(old&&old.score>=sc) return {kept:true, rank:await rankOf(old.score), old};
   const data={name, win:!!rec.win, days:rec.days, money:Math.round(rec.money), score:sc, at:ON.F.serverTimestamp(), ver:GAME_VER};
+  if(rec.mix&&Object.keys(rec.mix).length) data.mix=rec.mix;   // 무엇으로 벌었나 (v0.8.1)
   await ON.F.setDoc(ON.F.doc(ON.db,'scores',ON.user.uid),data); ON.mine={...data};
   return {kept:false, rank:await rankOf(sc)};
 }
